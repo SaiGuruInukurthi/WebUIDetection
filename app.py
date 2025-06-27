@@ -159,7 +159,7 @@ st.markdown("""
 st.markdown("""
 <div class="title-container">
     <h1>🎯 YOLOv8 Web Element Detection</h1>
-    <p>Discover the power of AI-driven web element detection! Upload a website screenshot and watch our YOLOv8 model identify various UI components with precision.</p>
+    <p>Discover the power of ML-driven web element detection! Upload a website screenshot and watch our YOLOv8 model identify various UI components with precision.</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -212,7 +212,7 @@ def load_model():
     
     # Download the model
     try:
-        with st.spinner("Downloading model... This may take a few minutes."):
+        with st.spinner("Downloading the model... This may take a few minutes."):
             # Try multiple download methods
             
             # Method 1: Direct HTTP download (if you have a direct URL)
