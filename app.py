@@ -202,8 +202,8 @@ def load_model():
     # Check if model file exists locally
     if not os.path.exists(model_path):
         try:
-            # Get model URL from Streamlit secrets
-            model_url = st.secrets["MODEL_URL"]
+            # Google Drive direct download link
+            model_url = "https://drive.google.com/uc?export=download&id=1q1g2Pd7xff99mrdUYW4aASnxx-Mmkocg"
             
             with st.spinner("Downloading model... This may take a few minutes."):
                 urllib.request.urlretrieve(model_url, model_path)
