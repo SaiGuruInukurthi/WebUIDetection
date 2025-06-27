@@ -225,8 +225,6 @@ def load_model():
             success = False
             for i, url in enumerate(model_urls):
                 try:
-                    st.info(f"Trying download method {i+1}...")
-                    
                     # Use requests with headers to avoid blocks
                     headers = {
                         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -254,14 +252,12 @@ def load_model():
                         # Verify the file is not empty and looks like a model
                         if os.path.getsize(model_path) > 1000000:  # At least 1MB
                             success = True
-                            st.success("✅ Model downloaded successfully!")
                             break
                         else:
                             os.remove(model_path)
                             continue
                             
                 except Exception as e:
-                    st.warning(f"Method {i+1} failed: {str(e)}")
                     continue
             
             if not success:
