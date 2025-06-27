@@ -247,14 +247,9 @@ def load_model():
                         total_size = int(content_length) if content_length else 0
                         
                         with open(model_path, 'wb') as f:
-                            downloaded = 0
                             for chunk in response.iter_content(chunk_size=8192):
                                 if chunk:
                                     f.write(chunk)
-                                    downloaded += len(chunk)
-                                    if total_size > 0:
-                                        progress = downloaded / total_size
-                                        st.progress(progress)
                         
                         # Verify the file is not empty and looks like a model
                         if os.path.getsize(model_path) > 1000000:  # At least 1MB
