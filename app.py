@@ -186,11 +186,32 @@ except Exception as e:
 
 # --- MODEL INFERENCE ---
 @st.cache_resource
-def load_model(model_path):
+def load_model():
     """
     Loads the YOLOv8 model from the specified path.
     Using st.cache_resource to load the model only once.
     """
+    import os
+    import urllib.request
+    
+    model_path = "weights/best.pt"
+    
+    # Create weights directory if it doesn't exist
+    os.makedirs("weights", exist_ok=True)
+    
+    # Check if model file exists locally
+    if not os.path.exists(model_path):
+        try:
+            # Get model URL from Streamlit secrets
+            model_url = st.secrets["MODEL_URL"]
+            
+            with st.spinner("Downloading model... This may take a few minutes."):
+                urllib.request.urlretrieve(model_url, model_path)
+                st.success("Model downloaded successfully!")
+        except Exception as e:
+            st.error(f"Error downloading model: {e}")
+            return None
+    
     try:
         model = YOLO(model_path)
         return model
@@ -199,7 +220,7 @@ def load_model(model_path):
         return None
 
 # Load the model
-model = load_model("weights/best.pt")
+model = load_model()
 
 if model:
     st.markdown("### 📤 Upload Your Website Screenshot")
