@@ -192,31 +192,78 @@ def load_model():
     Using st.cache_resource to load the model only once.
     """
     import os
-    import urllib.request
+    import requests
+    from io import BytesIO
     
     model_path = "weights/best.pt"
     
     # Create weights directory if it doesn't exist
     os.makedirs("weights", exist_ok=True)
     
-    # Check if model file exists locally
-    if not os.path.exists(model_path):
+    # Check if model file exists locally and is valid
+    if os.path.exists(model_path):
         try:
-            # Google Drive direct download link
-            model_url = "https://drive.google.com/uc?export=download&id=1q1g2Pd7xff99mrdUYW4aASnxx-Mmkocg"
-            
-            with st.spinner("Downloading model... This may take a few minutes."):
-                urllib.request.urlretrieve(model_url, model_path)
-                st.success("Model downloaded successfully!")
-        except Exception as e:
-            st.error(f"Error downloading model: {e}")
-            return None
+            # Try to load the existing model to verify it's valid
+            model = YOLO(model_path)
+            return model
+        except Exception:
+            # If loading fails, delete the corrupted file and redownload
+            os.remove(model_path)
     
+    # Download the model
+    try:
+        # Google Drive file ID
+        file_id = "1q1g2Pd7xff99mrdUYW4aASnxx-Mmkocg"
+        
+        with st.spinner("Downloading model... This may take a few minutes."):
+            # Use the Google Drive download URL that bypasses the virus scan warning
+            download_url = f"https://drive.google.com/uc?export=download&id={file_id}&confirm=t"
+            
+            # Create a session to handle cookies
+            session = requests.Session()
+            
+            # First request to get any cookies/tokens
+            response = session.get(download_url, stream=True)
+            
+            # Check if we got redirected to a confirmation page
+            if 'confirm=' in response.url or response.status_code != 200:
+                # Try alternative download method
+                download_url = f"https://drive.google.com/uc?export=download&id={file_id}&confirm=1"
+                response = session.get(download_url, stream=True)
+            
+            # Check if the response is valid
+            if response.status_code == 200:
+                # Check if we're getting HTML (error page) instead of binary data
+                content_type = response.headers.get('content-type', '').lower()
+                if 'text/html' in content_type:
+                    st.error("❌ Could not download model file. The file might be too large or have download restrictions.")
+                    st.info("💡 **Alternative solution**: Please download the model manually from the Google Drive link and upload it to your repository in the 'weights' folder.")
+                    return None
+                
+                # Save the model file
+                with open(model_path, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+                
+                st.success("✅ Model downloaded successfully!")
+            else:
+                raise Exception(f"Failed to download: HTTP {response.status_code}")
+                
+    except Exception as e:
+        st.error(f"❌ Error downloading model: {e}")
+        st.info("💡 **Alternative solution**: Please download the model manually and add it to your repository.")
+        return None
+    
+    # Load the downloaded model
     try:
         model = YOLO(model_path)
         return model
     except Exception as e:
-        st.error(f"Error loading model: {e}")
+        st.error(f"❌ Error loading model: {e}")
+        # Clean up corrupted file
+        if os.path.exists(model_path):
+            os.remove(model_path)
         return None
 
 # Load the model
