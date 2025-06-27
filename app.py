@@ -212,43 +212,74 @@ def load_model():
     
     # Download the model
     try:
-        # Google Drive file ID
-        file_id = "1q1g2Pd7xff99mrdUYW4aASnxx-Mmkocg"
-        
         with st.spinner("Downloading model... This may take a few minutes."):
-            # Use the Google Drive download URL that bypasses the virus scan warning
-            download_url = f"https://drive.google.com/uc?export=download&id={file_id}&confirm=t"
+            # Try multiple download methods
             
-            # Create a session to handle cookies
-            session = requests.Session()
+            # Method 1: Direct HTTP download (if you have a direct URL)
+            model_urls = [
+                f"https://drive.google.com/uc?export=download&id=1q1g2Pd7xff99mrdUYW4aASnxx-Mmkocg&confirm=t",
+                f"https://drive.google.com/uc?id=1q1g2Pd7xff99mrdUYW4aASnxx-Mmkocg&export=download",
+                f"https://drive.usercontent.google.com/download?id=1q1g2Pd7xff99mrdUYW4aASnxx-Mmkocg&export=download&confirm=t"
+            ]
             
-            # First request to get any cookies/tokens
-            response = session.get(download_url, stream=True)
+            success = False
+            for i, url in enumerate(model_urls):
+                try:
+                    st.info(f"Trying download method {i+1}...")
+                    
+                    # Use requests with headers to avoid blocks
+                    headers = {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                    }
+                    
+                    response = requests.get(url, headers=headers, stream=True, timeout=60)
+                    
+                    if response.status_code == 200:
+                        # Check content length and type
+                        content_length = response.headers.get('content-length')
+                        content_type = response.headers.get('content-type', '').lower()
+                        
+                        # Skip if it's HTML (error page)
+                        if 'text/html' in content_type:
+                            continue
+                        
+                        # Download if it looks like a binary file
+                        total_size = int(content_length) if content_length else 0
+                        
+                        with open(model_path, 'wb') as f:
+                            downloaded = 0
+                            for chunk in response.iter_content(chunk_size=8192):
+                                if chunk:
+                                    f.write(chunk)
+                                    downloaded += len(chunk)
+                                    if total_size > 0:
+                                        progress = downloaded / total_size
+                                        st.progress(progress)
+                        
+                        # Verify the file is not empty and looks like a model
+                        if os.path.getsize(model_path) > 1000000:  # At least 1MB
+                            success = True
+                            st.success("✅ Model downloaded successfully!")
+                            break
+                        else:
+                            os.remove(model_path)
+                            continue
+                            
+                except Exception as e:
+                    st.warning(f"Method {i+1} failed: {str(e)}")
+                    continue
             
-            # Check if we got redirected to a confirmation page
-            if 'confirm=' in response.url or response.status_code != 200:
-                # Try alternative download method
-                download_url = f"https://drive.google.com/uc?export=download&id={file_id}&confirm=1"
-                response = session.get(download_url, stream=True)
-            
-            # Check if the response is valid
-            if response.status_code == 200:
-                # Check if we're getting HTML (error page) instead of binary data
-                content_type = response.headers.get('content-type', '').lower()
-                if 'text/html' in content_type:
-                    st.error("❌ Could not download model file. The file might be too large or have download restrictions.")
-                    st.info("💡 **Alternative solution**: Please download the model manually from the Google Drive link and upload it to your repository in the 'weights' folder.")
-                    return None
-                
-                # Save the model file
-                with open(model_path, 'wb') as f:
-                    for chunk in response.iter_content(chunk_size=8192):
-                        if chunk:
-                            f.write(chunk)
-                
-                st.success("✅ Model downloaded successfully!")
-            else:
-                raise Exception(f"Failed to download: HTTP {response.status_code}")
+            if not success:
+                st.error("❌ All download methods failed.")
+                st.markdown("""
+                **Manual Download Instructions:**
+                1. Go to: https://drive.google.com/file/d/1q1g2Pd7xff99mrdUYW4aASnxx-Mmkocg/view
+                2. Click "Download" 
+                3. Save the file as `best.pt`
+                4. Upload it to your GitHub repository in a `weights` folder
+                5. Redeploy your Streamlit app
+                """)
+                return None
                 
     except Exception as e:
         st.error(f"❌ Error downloading model: {e}")
