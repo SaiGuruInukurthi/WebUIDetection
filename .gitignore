@@ -1,0 +1,53 @@
+# .gitignore for WebUIDetection
+# Recommended ignores for environment, dataset archives, and editor files
+
+# Conda environment files
+.conda/
+.condatmp/
+conda-meta/
+
+# Python cache and bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtualenvs
+env/
+venv/
+.venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Dataset archives and large extracted dataset folder
+/webui-7k/
+/webui-7k\ -\ Copy/
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+
+# Editor and IDE
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs, databases, and temporary files
+*.log
+*.sqlite
+*.db
+tmp/
+temp/
+*.tmp
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Notes:
+# - If you want parts of the dataset tracked in git, remove the corresponding patterns above.
+# - Adjust patterns as needed for your workflow.
