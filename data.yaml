@@ -1,0 +1,25 @@
+path: /mnt/c/WebUIDetection/datasets/webui
+train: images/train
+val: images/val
+nc: 20
+names:
+- button
+- link
+- text_input
+- image
+- icon
+- dropdown
+- checkbox
+- radio
+- container
+- navigation
+- header
+- footer
+- card
+- modal
+- menu
+- list_item
+- form
+- video
+- slider
+- other

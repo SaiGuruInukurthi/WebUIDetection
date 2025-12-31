@@ -20,13 +20,24 @@ venv/
 .ipynb_checkpoints/
 
 # Dataset archives and large extracted dataset folder
-/webui-7k/
-/webui-7k\ -\ Copy/
+webui-7k/
+webui-7k\ -\ Copy/
 *.zip
 *.tar
 *.tar.gz
 *.tgz
 *.7z
+
+# YOLO dataset (converted images and labels - too large for git)
+datasets/
+
+# Training runs and model weights
+runs/
+
+# Pretrained model weights (download separately)
+*.pt
+*.onnx
+*.torchscript
 
 # Editor and IDE
 .vscode/
@@ -49,5 +60,6 @@ dist/
 *.egg-info/
 
 # Notes:
-# - If you want parts of the dataset tracked in git, remove the corresponding patterns above.
-# - Adjust patterns as needed for your workflow.
+# - Model weights (.pt) are ignored - download from Ultralytics or use trained weights from runs/
+# - datasets/ contains converted YOLO format data - regenerate from webui-7k if needed
+# - runs/ contains training outputs - these can be large
