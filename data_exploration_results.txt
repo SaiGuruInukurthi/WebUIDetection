@@ -1,0 +1,106 @@
+=== CLASS DATA STRUCTURE ===
+Total elements: 2150
+Sample entries (first 15):
+  ID 4: {}
+  ID 5: {'0': 'downArrow'}
+  ID 7: {}
+  ID 8: {'0': 'dropdown-trigger'}
+  ID 9: {}
+  ID 10: {'0': 'linksTitle'}
+  ID 11: {'0': 'downArrow'}
+  ID 12: {'0': 'rightItems'}
+  ID 13: {'0': 'links'}
+  ID 14: {}
+  ID 15: {'0': 'dropdown-trigger'}
+  ID 16: {}
+  ID 17: {'0': 'linksTitle'}
+  ID 18: {'0': 'feedbackButton'}
+  ID 19: {}
+
+=== BB (Bounding Box) DATA STRUCTURE ===
+Total elements: 2529
+Sample entries (first 15):
+  ID 3: {'x': 0, 'y': 0, 'width': 1920, 'height': 1080}
+  ID 4: {'x': 0, 'y': 45, 'width': 1920, 'height': 1584.375}
+  ID 5: {'x': 320.625, 'y': 18.984375, 'width': 10.0625, 'height': 5.03125}
+  ID 7: {'x': 506.75, 'y': 0, 'width': 98.0625, 'height': 44}
+  ID 8: {'x': 514.75, 'y': 8, 'width': 82.0625, 'height': 28}
+  ID 9: {'x': 514.75, 'y': 8, 'width': 82.0625, 'height': 28}
+  ID 10: {'x': 518.75, 'y': 12, 'width': 56, 'height': 20}
+  ID 11: {'x': 582.75, 'y': 18.984375, 'width': 10.0625, 'height': 5.03125}
+  ID 12: {'x': 604.8125, 'y': 7, 'width': 1238.1875, 'height': 30}
+  ID 13: {'x': 224.625, 'y': 0, 'width': 380.1875, 'height': 44}
+  ID 14: {'x': 236.625, 'y': 0, 'width': 106.0625, 'height': 44}
+  ID 15: {'x': 244.625, 'y': 8, 'width': 90.0625, 'height': 28}
+  ID 16: {'x': 244.625, 'y': 8, 'width': 90.0625, 'height': 28}
+  ID 17: {'x': 248.625, 'y': 12, 'width': 64, 'height': 20}
+  ID 18: {'x': 1823, 'y': 12, 'width': 20, 'height': 20}
+
+=== BOX DATA STRUCTURE ===
+Total elements: 2529
+Top keys: ['3', '4', '5', '7', '8', '9', '10', '11', '12', '13']
+  ID 3: {'content': [{'x': 0, 'y': 0}, {'x': 1920, 'y': 0}, {'x': 1920, 'y': 1080}, {'x': 0, 'y': 1080}], 'padding': [{'x': 0, 'y': 0}, {'x': 1920, 'y': 0}, {'x': 1920, 'y': 1080}, {'x': 0, 'y': 1080}], 'bord
+  ID 4: {'content': [{'x': 0, 'y': 45}, {'x': 1920, 'y': 45}, {'x': 1920, 'y': 1605.375}, {'x': 0, 'y': 1605.375}], 'padding': [{'x': 0, 'y': 45}, {'x': 1920, 'y': 45}, {'x': 1920, 'y': 1629.375}, {'x': 0, 'y
+  ID 5: {'content': [{'x': 325.65625, 'y': 24.015625}, {'x': 325.65625, 'y': 24.015625}, {'x': 325.65625, 'y': 24.015625}, {'x': 325.65625, 'y': 24.015625}], 'padding': [{'x': 325.65625, 'y': 24.015625}, {'x'
+  ID 7: {'content': [{'x': 506.75, 'y': 0}, {'x': 604.8125, 'y': 0}, {'x': 604.8125, 'y': 44}, {'x': 506.75, 'y': 44}], 'padding': [{'x': 506.75, 'y': 0}, {'x': 604.8125, 'y': 0}, {'x': 604.8125, 'y': 44}, {'
+  ID 8: {'content': [{'x': 514.75, 'y': 8}, {'x': 596.8125, 'y': 8}, {'x': 596.8125, 'y': 36}, {'x': 514.75, 'y': 36}], 'padding': [{'x': 514.75, 'y': 8}, {'x': 596.8125, 'y': 8}, {'x': 596.8125, 'y': 36}, {'
+  ID 9: {'content': [{'x': 518.75, 'y': 12}, {'x': 592.8125, 'y': 12}, {'x': 592.8125, 'y': 32}, {'x': 518.75, 'y': 32}], 'padding': [{'x': 514.75, 'y': 8}, {'x': 596.8125, 'y': 8}, {'x': 596.8125, 'y': 36}, 
+  ID 10: {'content': [{'x': 518.75, 'y': 12}, {'x': 574.75, 'y': 12}, {'x': 574.75, 'y': 32}, {'x': 518.75, 'y': 32}], 'padding': [{'x': 518.75, 'y': 12}, {'x': 574.75, 'y': 12}, {'x': 574.75, 'y': 32}, {'x': 
+  ID 11: {'content': [{'x': 587.78125, 'y': 24.015625}, {'x': 587.78125, 'y': 24.015625}, {'x': 587.78125, 'y': 24.015625}, {'x': 587.78125, 'y': 24.015625}], 'padding': [{'x': 587.78125, 'y': 24.015625}, {'x'
+  ID 12: {'content': [{'x': 604.8125, 'y': 7}, {'x': 1843, 'y': 7}, {'x': 1843, 'y': 37}, {'x': 604.8125, 'y': 37}], 'padding': [{'x': 604.8125, 'y': 7}, {'x': 1843, 'y': 7}, {'x': 1843, 'y': 37}, {'x': 604.81
+  ID 13: {'content': [{'x': 236.625, 'y': 0}, {'x': 604.8125, 'y': 0}, {'x': 604.8125, 'y': 44}, {'x': 236.625, 'y': 44}], 'padding': [{'x': 224.625, 'y': 0}, {'x': 604.8125, 'y': 0}, {'x': 604.8125, 'y': 44},
+
+=== AXTREE (Accessibility Tree) DATA STRUCTURE ===
+Keys: ['nodes']
+Number of nodes: 2547
+
+Sample nodes (first 20):
+  Node 0: role=RootWebArea, name=[rust] Configure Rust FYI bots to run native Rust , backendId=3
+  Node 1: role=none, name=N/A, backendId=482
+  Node 2: role=none, name=N/A, backendId=483
+  Node 3: role=none, name=N/A, backendId=484
+  Node 4: role=generic, name=, backendId=485
+  Node 5: role=generic, name=, backendId=486
+  Node 6: role=generic, name=, backendId=487
+  Node 7: role=none, name=N/A, backendId=488
+  Node 8: role=none, name=N/A, backendId=489
+  Node 9: role=none, name=N/A, backendId=490
+  Node 10: role=none, name=N/A, backendId=491
+  Node 11: role=none, name=N/A, backendId=492
+  Node 12: role=none, name=N/A, backendId=493
+  Node 13: role=none, name=N/A, backendId=494
+  Node 14: role=none, name=N/A, backendId=495
+  Node 15: role=none, name=N/A, backendId=496
+  Node 16: role=none, name=N/A, backendId=497
+  Node 17: role=none, name=N/A, backendId=498
+  Node 18: role=none, name=N/A, backendId=499
+  Node 19: role=none, name=N/A, backendId=500
+
+=== ROLE DISTRIBUTION (axtree) ===
+  none: 1638
+  generic: 328
+  StaticText: 290
+  button: 72
+  gridcell: 54
+  img: 51
+  link: 38
+  Section: 14
+  heading: 12
+  switch: 8
+  row: 8
+  columnheader: 7
+  tab: 5
+  LayoutTableCell: 4
+  listitem: 3
+  tablist: 2
+  LayoutTable: 2
+  LayoutTableRow: 2
+  RootWebArea: 1
+  banner: 1
+  main: 1
+  contentinfo: 1
+  navigation: 1
+  list: 1
+  grid: 1
+  table: 1
+  textbox: 1
