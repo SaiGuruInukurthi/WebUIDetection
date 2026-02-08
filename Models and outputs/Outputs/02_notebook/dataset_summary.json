@@ -1,5 +1,5 @@
 {
-  "dataset_name": "WebUI Balanced 7K - Desktop Top 10",
+  "dataset_name": "WebUI Balanced 7K - Desktop Top 20",
   "creation_date": "2026-02-08",
   "total_valid_samples": 6999,
   "total_desktop_screenshots": 27996,
@@ -9,8 +9,8 @@
     "default_1536-864",
     "default_1920-1080"
   ],
-  "num_classes": 10,
-  "top_10_classes": {
+  "num_classes": 20,
+  "top_20_classes": {
     "class_names": [
       "none",
       "StaticText",
@@ -21,7 +21,17 @@
       "heading",
       "LineBreak",
       "img",
-      "list"
+      "list",
+      "ListMarker",
+      "RootWebArea",
+      "gridcell",
+      "Section",
+      "menuitem",
+      "button",
+      "textbox",
+      "combobox",
+      "searchbox",
+      "search"
     ],
     "class_mapping": {
       "none": 0,
@@ -33,7 +43,17 @@
       "heading": 6,
       "LineBreak": 7,
       "img": 8,
-      "list": 9
+      "list": 9,
+      "ListMarker": 10,
+      "RootWebArea": 11,
+      "gridcell": 12,
+      "Section": 13,
+      "menuitem": 14,
+      "button": 15,
+      "textbox": 16,
+      "combobox": 17,
+      "searchbox": 18,
+      "search": 19
     },
     "id_to_class": {
       "0": "none",
@@ -45,36 +65,71 @@
       "6": "heading",
       "7": "LineBreak",
       "8": "img",
-      "9": "list"
-    }
+      "9": "list",
+      "10": "ListMarker",
+      "11": "RootWebArea",
+      "12": "gridcell",
+      "13": "Section",
+      "14": "menuitem",
+      "15": "button",
+      "16": "textbox",
+      "17": "combobox",
+      "18": "searchbox",
+      "19": "search"
+    },
+    "structural_classes": [
+      "none",
+      "StaticText",
+      "link",
+      "generic",
+      "listitem",
+      "paragraph",
+      "heading",
+      "LineBreak",
+      "img",
+      "list",
+      "ListMarker",
+      "RootWebArea",
+      "gridcell",
+      "Section",
+      "menuitem"
+    ],
+    "interactive_classes": [
+      "button",
+      "textbox",
+      "menuitem",
+      "combobox",
+      "searchbox",
+      "search"
+    ]
   },
   "filtering_statistics": {
     "total_screenshots": 27996,
     "total_boxes_original": 3348797,
-    "total_boxes_filtered": 2556049,
-    "overall_retention_rate": 76.32737965305154,
+    "total_boxes_filtered": 2683018,
+    "overall_retention_rate": 80.1188605938192,
     "mean_boxes_per_screenshot_original": 119.61698099728532,
-    "mean_boxes_per_screenshot_filtered": 91.30050721531647,
+    "mean_boxes_per_screenshot_filtered": 95.83576225175025,
     "by_config": {
       "default_1280-720": {
         "original": 837775,
-        "filtered": 639554,
-        "retention_rate": 76.33958998537793
+        "filtered": 671298,
+        "retention_rate": 80.12867416669154
       },
       "default_1366-768": {
         "original": 837058,
-        "filtered": 638831,
-        "retention_rate": 76.31860635702662
+        "filtered": 670575,
+        "retention_rate": 80.11093615974042
       },
       "default_1536-864": {
         "original": 837560,
-        "filtered": 639311,
-        "retention_rate": 76.33017336071445
+        "filtered": 671054,
+        "retention_rate": 80.12011079803239
       },
       "default_1920-1080": {
         "original": 836404,
-        "filtered": 638353,
-        "retention_rate": 76.32113189319993
+        "filtered": 670091,
+        "retention_rate": 80.1157096331438
       }
     }
   },
@@ -82,27 +137,27 @@
     "train": {
       "num_samples": 4899,
       "num_screenshots": 19596,
-      "total_elements": 1780579,
-      "avg_elements_per_screenshot": 90.864411104307,
+      "total_elements": 1894929,
+      "avg_elements_per_screenshot": 96.69978567054501,
       "percentage": 69.99571367338191
     },
     "val": {
       "num_samples": 1050,
       "num_screenshots": 4200,
-      "total_elements": 390104,
-      "avg_elements_per_screenshot": 92.88190476190476,
+      "total_elements": 392017,
+      "avg_elements_per_screenshot": 93.33738095238095,
       "percentage": 15.002143163309045
     },
     "test": {
       "num_samples": 1050,
       "num_screenshots": 4200,
-      "total_elements": 385366,
-      "avg_elements_per_screenshot": 91.75380952380952,
+      "total_elements": 396072,
+      "avg_elements_per_screenshot": 94.30285714285715,
       "percentage": 15.002143163309045
     }
   },
   "output_files": {
-    "class_mapping": "class_mapping_top10.json",
+    "class_mapping": "class_mapping_top20.json",
     "filtering_stats": "filtering_statistics.json",
     "density_info": "sample_density_info.csv",
     "splits": {
