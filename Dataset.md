@@ -12,6 +12,10 @@ The **WebUI Balanced 7K** is a comprehensive web user interface detection datase
 - **Device Configurations**: 6 viewports per sample
 - **Annotation Types**: Multiple (bounding boxes, accessibility tree, element classes, viewport visibility, CSS styles)
 
+### Dataset Sources
+- **Hugging Face**: [biglab/webui-7k](https://huggingface.co/datasets/biglab/webui-7k)
+- **Google Drive**: [Download Dataset](https://drive.google.com/drive/folders/1hcO75W2FjsZoibsj2TIbKz67hy9JkOBz)
+
 ---
 
 ## Directory Structure
