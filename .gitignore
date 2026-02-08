@@ -27,6 +27,10 @@ webui-7k\ -\ Copy/
 *.tar.gz
 *.tgz
 *.7z
+balanced_7k.zip-001.001
+balanced_7k.zip-002.002
+webui-balanced-7k-20260208T053018Z-1-003
+balanced_7k
 
 # YOLO dataset (converted images and labels - too large for git)
 datasets/
