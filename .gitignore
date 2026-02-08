@@ -43,6 +43,9 @@ runs/
 *.onnx
 *.torchscript
 
+# Large manifest files (contain embedded bounding box data - regenerate from notebooks)
+Models and outputs/Outputs/*/manifests/*_manifest.json
+
 # Editor and IDE
 .vscode/
 

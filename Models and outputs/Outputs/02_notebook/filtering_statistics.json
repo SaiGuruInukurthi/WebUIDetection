@@ -1,0 +1,30 @@
+{
+  "total_screenshots": 27996,
+  "total_boxes_original": 3348797,
+  "total_boxes_filtered": 2556049,
+  "overall_retention_rate": 76.32737965305154,
+  "mean_boxes_per_screenshot_original": 119.61698099728532,
+  "mean_boxes_per_screenshot_filtered": 91.30050721531647,
+  "by_config": {
+    "default_1280-720": {
+      "original": 837775,
+      "filtered": 639554,
+      "retention_rate": 76.33958998537793
+    },
+    "default_1366-768": {
+      "original": 837058,
+      "filtered": 638831,
+      "retention_rate": 76.31860635702662
+    },
+    "default_1536-864": {
+      "original": 837560,
+      "filtered": 639311,
+      "retention_rate": 76.33017336071445
+    },
+    "default_1920-1080": {
+      "original": 836404,
+      "filtered": 638353,
+      "retention_rate": 76.32113189319993
+    }
+  }
+}

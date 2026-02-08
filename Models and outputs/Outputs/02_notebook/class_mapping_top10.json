@@ -1,0 +1,39 @@
+{
+  "class_to_id": {
+    "none": 0,
+    "StaticText": 1,
+    "link": 2,
+    "generic": 3,
+    "listitem": 4,
+    "paragraph": 5,
+    "heading": 6,
+    "LineBreak": 7,
+    "img": 8,
+    "list": 9
+  },
+  "id_to_class": {
+    "0": "none",
+    "1": "StaticText",
+    "2": "link",
+    "3": "generic",
+    "4": "listitem",
+    "5": "paragraph",
+    "6": "heading",
+    "7": "LineBreak",
+    "8": "img",
+    "9": "list"
+  },
+  "top_10_classes": [
+    "none",
+    "StaticText",
+    "link",
+    "generic",
+    "listitem",
+    "paragraph",
+    "heading",
+    "LineBreak",
+    "img",
+    "list"
+  ],
+  "num_classes": 10
+}

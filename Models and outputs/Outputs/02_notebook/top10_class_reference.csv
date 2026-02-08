@@ -1,0 +1,11 @@
+class_id,aria_role,count,percentage,description
+0,none,1019706,29.667393727377544,UI element
+1,StaticText,891822,25.946728183159944,Static text nodes
+2,link,382718,11.134822774951289,Hyperlink or anchor element
+3,generic,232751,6.77167296989608,"Generic container element (div, span)"
+4,listitem,215660,6.274426286837816,List item element
+5,paragraph,148986,4.334608526248812,Paragraph text element
+6,heading,96633,2.8114468857275274,Heading element (h1-h6)
+7,LineBreak,68317,1.9876193111281601,UI element
+8,img,50018,1.4552269962675222,Image element
+9,list,43648,1.2698977954553323,"List container (ul, ol)"

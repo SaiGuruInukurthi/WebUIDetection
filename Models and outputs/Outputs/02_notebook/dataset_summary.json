@@ -1,0 +1,119 @@
+{
+  "dataset_name": "WebUI Balanced 7K - Desktop Top 10",
+  "creation_date": "2026-02-08",
+  "total_valid_samples": 6999,
+  "total_desktop_screenshots": 27996,
+  "desktop_configs": [
+    "default_1280-720",
+    "default_1366-768",
+    "default_1536-864",
+    "default_1920-1080"
+  ],
+  "num_classes": 10,
+  "top_10_classes": {
+    "class_names": [
+      "none",
+      "StaticText",
+      "link",
+      "generic",
+      "listitem",
+      "paragraph",
+      "heading",
+      "LineBreak",
+      "img",
+      "list"
+    ],
+    "class_mapping": {
+      "none": 0,
+      "StaticText": 1,
+      "link": 2,
+      "generic": 3,
+      "listitem": 4,
+      "paragraph": 5,
+      "heading": 6,
+      "LineBreak": 7,
+      "img": 8,
+      "list": 9
+    },
+    "id_to_class": {
+      "0": "none",
+      "1": "StaticText",
+      "2": "link",
+      "3": "generic",
+      "4": "listitem",
+      "5": "paragraph",
+      "6": "heading",
+      "7": "LineBreak",
+      "8": "img",
+      "9": "list"
+    }
+  },
+  "filtering_statistics": {
+    "total_screenshots": 27996,
+    "total_boxes_original": 3348797,
+    "total_boxes_filtered": 2556049,
+    "overall_retention_rate": 76.32737965305154,
+    "mean_boxes_per_screenshot_original": 119.61698099728532,
+    "mean_boxes_per_screenshot_filtered": 91.30050721531647,
+    "by_config": {
+      "default_1280-720": {
+        "original": 837775,
+        "filtered": 639554,
+        "retention_rate": 76.33958998537793
+      },
+      "default_1366-768": {
+        "original": 837058,
+        "filtered": 638831,
+        "retention_rate": 76.31860635702662
+      },
+      "default_1536-864": {
+        "original": 837560,
+        "filtered": 639311,
+        "retention_rate": 76.33017336071445
+      },
+      "default_1920-1080": {
+        "original": 836404,
+        "filtered": 638353,
+        "retention_rate": 76.32113189319993
+      }
+    }
+  },
+  "splits": {
+    "train": {
+      "num_samples": 4899,
+      "num_screenshots": 19596,
+      "total_elements": 1780579,
+      "avg_elements_per_screenshot": 90.864411104307,
+      "percentage": 69.99571367338191
+    },
+    "val": {
+      "num_samples": 1050,
+      "num_screenshots": 4200,
+      "total_elements": 390104,
+      "avg_elements_per_screenshot": 92.88190476190476,
+      "percentage": 15.002143163309045
+    },
+    "test": {
+      "num_samples": 1050,
+      "num_screenshots": 4200,
+      "total_elements": 385366,
+      "avg_elements_per_screenshot": 91.75380952380952,
+      "percentage": 15.002143163309045
+    }
+  },
+  "output_files": {
+    "class_mapping": "class_mapping_top10.json",
+    "filtering_stats": "filtering_statistics.json",
+    "density_info": "sample_density_info.csv",
+    "splits": {
+      "train": "splits/train_samples.json",
+      "val": "splits/val_samples.json",
+      "test": "splits/test_samples.json"
+    },
+    "manifests": {
+      "train": "manifests/train_manifest.json",
+      "val": "manifests/val_manifest.json",
+      "test": "manifests/test_manifest.json"
+    }
+  }
+}
