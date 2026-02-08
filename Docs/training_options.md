@@ -312,6 +312,63 @@ Train detector with auxiliary tasks using rich dataset annotations.
 
 ---
 
+### 10. Two-Model Hybrid Approach (Structural + Interactive)
+
+**Description**  
+Train TWO specialized models in parallel, each optimized for different element types.
+
+**Model A: Structural Elements** (Current Top-10)
+- Classes: none, StaticText, link, generic, listitem, paragraph, heading, LineBreak, img, list
+- Coverage: 91.65% of elements
+- Optimized for: Common structural layout elements
+- Training: Standard class imbalance handling
+
+**Model B: Interactive Elements** (Force-Selected 10)
+- Classes: button, textbox, menuitem, combobox, searchbox, search, checkbox, tab, dialog, radio
+- Coverage: 0.868% of elements (but CRITICAL functionality)
+- Optimized for: User interaction detection
+- Training: Heavy oversampling + augmentation to handle extreme rarity
+
+**Ensemble at Inference**:
+```python
+detections_A = model_A(image)  # Structural
+detections_B = model_B(image)  # Interactive
+# Merge: Interactive overrides structural in overlap regions
+final = merge_detections(detections_A, detections_B, priority='B')
+```
+
+**Pros**
+- ✅ Each model specialized for its domain
+- ✅ Can handle extreme imbalance separately (0.868% interactive vs 91.65% structural)
+- ✅ No Notebook 2 changes needed (use existing manifests + filter for interactive)
+- ✅ Flexible: improve each model independently
+- ✅ Real-world practical (covers both common + critical rare elements)
+- ✅ Training can be parallelized (if multiple GPUs)
+- ✅ Clear separation of concerns
+
+**Cons**
+- ❌ 2× training time if sequential (~4-6 days total)
+- ❌ 2× inference cost (~100ms per image)
+- ❌ Need merging logic with priority rules
+- ❌ Model B needs heavy oversampling (29K boxes → ~500K with augmentation)
+- ❌ More complex deployment
+
+**When to Use**
+- Interactive elements are critical but very rare
+- Can afford 2× inference cost
+- Want specialization for different element types
+- Have GPU resources for parallel training
+- Real-world application needs both structural + interactive coverage
+
+**Expected Performance**: 
+- Model A mAP@50: 70-78% (structural)
+- Model B mAP@50: 60-75% (interactive, harder due to rarity)
+- Combined mAP@50: 72-80% (weighted by element frequency)
+
+**This is our chosen method for maximum real-world utility.**
+
+---
+
 ## Tier 5: What NOT to Do
 
 ### ❌ 10 Independent CNNs (One Per Class)
@@ -364,12 +421,13 @@ Train detector with auxiliary tasks using rich dataset annotations.
 | Goal | Best Option | Runner-Up |
 |------|-------------|-----------|
 | **Strong baseline** | Multi-class detector + improved loss | Single detector baseline |
-| **Do something different** | Two-stage (detector + CNN) | Semantic grouping |
+| **Do something different** | Two-model hybrid | Two-stage (detector + CNN) |
 | **Use CNNs properly** | Two-stage (detector + CNN) | Shared backbone multi-head |
 | **Research novelty** | Hierarchical detection | Multitask learning |
-| **Best trade-off** | Two-stage (detector + CNN) | Semantic grouping |
+| **Best trade-off** | Two-model hybrid | Two-stage (detector + CNN) |
 | **Fastest to implement** | Single detector baseline | Baseline + improved loss |
-| **Best expected mAP** | Shared backbone multi-head | Two-stage (detector + CNN) |
+| **Best expected mAP** | Shared backbone multi-head | Two-model hybrid |
+| **Real-world utility** | Two-model hybrid | Two-stage (detector + CNN) |
 
 ---
 
@@ -381,11 +439,12 @@ Train detector with auxiliary tasks using rich dataset annotations.
 | Baseline + improved loss | 65-75% | Low | Fast |
 | Semantic grouping | 68-78% | Medium | Medium |
 | Hierarchical | 70-80% | High | Medium-Slow |
-| **Two-stage (CNN classifier)** | **70-82%** | **Medium** | **Medium** |
+| Two-stage (CNN classifier) | 70-82% | Medium | Medium |
 | Multi-head backbone | 72-85% | High | Fast |
 | Transformers | 65-80% | Very High | Slow |
 | Anchor-free | 60-75% | Medium | Fast |
 | Multitask | 68-82% | Very High | Medium |
+| **Two-model hybrid** | **72-80%** | **Medium-High** | **Medium-Slow** |
 
 ---
 
@@ -393,17 +452,19 @@ Train detector with auxiliary tasks using rich dataset annotations.
 
 For the WebUI Balanced 7K Desktop dataset:
 
-**Primary Choice**: **Option 5 - Two-Stage (Class-Agnostic Detector + CNN Classifier)**
+**Primary Choice**: **Option 10 - Two-Model Hybrid (Structural + Interactive)**
 
 **Reasons**:
-1. ✅ Proper CNN usage (classification task)
-2. ✅ Handles extreme class imbalance cleanly
-3. ✅ Debuggable and interpretable
-4. ✅ Good trade-off: novelty vs. complexity
-5. ✅ Fits "ensemble-model-plan" branch conceptually
-6. ✅ Strong academic narrative (problem decomposition)
+1. ✅ Maximum real-world utility (covers common + critical rare elements)
+2. ✅ Each model specialized for its domain (structural vs interactive)
+3. ✅ No Notebook 2 changes needed (use existing data)
+4. ✅ Handles extreme imbalance through specialization
+5. ✅ Flexible architecture (improve models independently)
+6. ✅ Practical for actual applications (forms, search, navigation)
 
-**Fallback**: Option 2 (Baseline + improved loss) if time-constrained.
+**Fallback**: Option 5 (Two-stage detector + CNN) if inference speed critical.
+
+**Alternative**: Option 2 (Baseline + improved loss) if time-constrained.
 
 ---
 
