@@ -2,7 +2,7 @@
   "notebook": "03_Model-A_Structural-Data",
   "creation_date": "2026-02-09",
   "description": "YOLO format dataset for Model A (structural elements)",
-  "num_classes": 10,
+  "num_classes": 9,
   "class_names": [
     "none",
     "StaticText",
@@ -11,7 +11,6 @@
     "listitem",
     "paragraph",
     "heading",
-    "LineBreak",
     "img",
     "list"
   ],
@@ -23,9 +22,8 @@
     "listitem": 4,
     "paragraph": 5,
     "heading": 6,
-    "LineBreak": 7,
-    "img": 8,
-    "list": 9
+    "img": 7,
+    "list": 8
   },
   "min_bbox_px": 2,
   "viewport_clipping": true,
@@ -37,11 +35,11 @@
       "total_bboxes": 838854,
       "avg_bboxes_per_image": 42.8,
       "empty_labels": 0,
-      "structural_before_clip": 1802823,
+      "structural_before_clip": 1754640,
       "clipped_bboxes": 80079,
       "discarded_offscreen": 839268,
-      "discarded_too_small": 124701,
-      "non_structural_skipped": 92106
+      "discarded_too_small": 76518,
+      "non_structural_skipped": 140289
     },
     "val": {
       "images": 4200,
@@ -49,11 +47,11 @@
       "total_bboxes": 174416,
       "avg_bboxes_per_image": 41.5,
       "empty_labels": 0,
-      "structural_before_clip": 374670,
+      "structural_before_clip": 364406,
       "clipped_bboxes": 16622,
       "discarded_offscreen": 173647,
-      "discarded_too_small": 26607,
-      "non_structural_skipped": 17347
+      "discarded_too_small": 16343,
+      "non_structural_skipped": 27611
     },
     "test": {
       "images": 4200,
@@ -61,11 +59,11 @@
       "total_bboxes": 183340,
       "avg_bboxes_per_image": 43.7,
       "empty_labels": 0,
-      "structural_before_clip": 378556,
+      "structural_before_clip": 368698,
       "clipped_bboxes": 17629,
       "discarded_offscreen": 168741,
-      "discarded_too_small": 26475,
-      "non_structural_skipped": 17516
+      "discarded_too_small": 16617,
+      "non_structural_skipped": 27374
     }
   },
   "class_distribution": {
@@ -118,22 +116,15 @@
       "test": 7842,
       "total": 49230
     },
-    "LineBreak": {
-      "class_id": 7,
-      "train": 0,
-      "val": 0,
-      "test": 0,
-      "total": 0
-    },
     "img": {
-      "class_id": 8,
+      "class_id": 7,
       "train": 14792,
       "val": 3259,
       "test": 2887,
       "total": 20938
     },
     "list": {
-      "class_id": 9,
+      "class_id": 8,
       "train": 15798,
       "val": 3376,
       "test": 3580,

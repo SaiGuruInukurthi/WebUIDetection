@@ -7,9 +7,8 @@
     "listitem": 4,
     "paragraph": 5,
     "heading": 6,
-    "LineBreak": 7,
-    "img": 8,
-    "list": 9
+    "img": 7,
+    "list": 8
   },
   "id_to_class": {
     "0": "none",
@@ -19,9 +18,8 @@
     "4": "listitem",
     "5": "paragraph",
     "6": "heading",
-    "7": "LineBreak",
-    "8": "img",
-    "9": "list"
+    "7": "img",
+    "8": "list"
   },
   "class_names": [
     "none",
@@ -31,9 +29,8 @@
     "listitem",
     "paragraph",
     "heading",
-    "LineBreak",
     "img",
     "list"
   ],
-  "num_classes": 10
+  "num_classes": 9
 }
