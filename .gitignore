@@ -49,6 +49,7 @@ Models and outputs/Outputs/*/manifests/*_manifest.json
 
 # YOLO model outputs
 Models and outputs/Outputs/03_notebook/yolo_model_a/
+Models and outputs/Outputs/04_notebook/yolo_model_b/
 
 # Editor and IDE
 .vscode/
