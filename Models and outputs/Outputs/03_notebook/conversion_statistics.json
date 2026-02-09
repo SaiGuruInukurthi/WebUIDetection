@@ -1,0 +1,199 @@
+{
+  "notebook": "03_Model-A_Structural-Data",
+  "creation_date": "2026-02-09",
+  "description": "YOLO format dataset for Model A (structural elements)",
+  "num_classes": 10,
+  "class_names": [
+    "none",
+    "StaticText",
+    "link",
+    "generic",
+    "listitem",
+    "paragraph",
+    "heading",
+    "LineBreak",
+    "img",
+    "list"
+  ],
+  "class_mapping": {
+    "none": 0,
+    "StaticText": 1,
+    "link": 2,
+    "generic": 3,
+    "listitem": 4,
+    "paragraph": 5,
+    "heading": 6,
+    "LineBreak": 7,
+    "img": 8,
+    "list": 9
+  },
+  "min_bbox_px": 2,
+  "viewport_clipping": true,
+  "image_format": "webp",
+  "splits": {
+    "train": {
+      "images": 19596,
+      "labels": 19596,
+      "total_bboxes": 838854,
+      "avg_bboxes_per_image": 42.8,
+      "empty_labels": 0,
+      "structural_before_clip": 1802823,
+      "clipped_bboxes": 80079,
+      "discarded_offscreen": 839268,
+      "discarded_too_small": 124701,
+      "non_structural_skipped": 92106
+    },
+    "val": {
+      "images": 4200,
+      "labels": 4200,
+      "total_bboxes": 174416,
+      "avg_bboxes_per_image": 41.5,
+      "empty_labels": 0,
+      "structural_before_clip": 374670,
+      "clipped_bboxes": 16622,
+      "discarded_offscreen": 173647,
+      "discarded_too_small": 26607,
+      "non_structural_skipped": 17347
+    },
+    "test": {
+      "images": 4200,
+      "labels": 4200,
+      "total_bboxes": 183340,
+      "avg_bboxes_per_image": 43.7,
+      "empty_labels": 0,
+      "structural_before_clip": 378556,
+      "clipped_bboxes": 17629,
+      "discarded_offscreen": 168741,
+      "discarded_too_small": 26475,
+      "non_structural_skipped": 17516
+    }
+  },
+  "class_distribution": {
+    "none": {
+      "class_id": 0,
+      "train": 151183,
+      "val": 31650,
+      "test": 30019,
+      "total": 212852
+    },
+    "StaticText": {
+      "class_id": 1,
+      "train": 282342,
+      "val": 57849,
+      "test": 64387,
+      "total": 404578
+    },
+    "link": {
+      "class_id": 2,
+      "train": 135296,
+      "val": 27399,
+      "test": 29476,
+      "total": 192171
+    },
+    "generic": {
+      "class_id": 3,
+      "train": 86288,
+      "val": 18335,
+      "test": 19075,
+      "total": 123698
+    },
+    "listitem": {
+      "class_id": 4,
+      "train": 80682,
+      "val": 17158,
+      "test": 17950,
+      "total": 115790
+    },
+    "paragraph": {
+      "class_id": 5,
+      "train": 38541,
+      "val": 7934,
+      "test": 8124,
+      "total": 54599
+    },
+    "heading": {
+      "class_id": 6,
+      "train": 33932,
+      "val": 7456,
+      "test": 7842,
+      "total": 49230
+    },
+    "LineBreak": {
+      "class_id": 7,
+      "train": 0,
+      "val": 0,
+      "test": 0,
+      "total": 0
+    },
+    "img": {
+      "class_id": 8,
+      "train": 14792,
+      "val": 3259,
+      "test": 2887,
+      "total": 20938
+    },
+    "list": {
+      "class_id": 9,
+      "train": 15798,
+      "val": 3376,
+      "test": 3580,
+      "total": 22754
+    }
+  },
+  "disk_usage": {
+    "train": {
+      "images_mb": 544.2,
+      "labels_mb": 31.2,
+      "total_mb": 575.4
+    },
+    "val": {
+      "images_mb": 118.7,
+      "labels_mb": 6.5,
+      "total_mb": 125.2
+    },
+    "test": {
+      "images_mb": 116.5,
+      "labels_mb": 6.8,
+      "total_mb": 123.3
+    }
+  },
+  "total_disk_mb": 823.9,
+  "validation": {
+    "train": {
+      "images": 19596,
+      "labels": 19596,
+      "matched": 19596,
+      "imgs_without_labels": 0,
+      "labels_without_imgs": 0,
+      "total_lines": 838854,
+      "empty_files": 0,
+      "field_errors": 0,
+      "class_id_errors": 0,
+      "coord_errors": 0
+    },
+    "val": {
+      "images": 4200,
+      "labels": 4200,
+      "matched": 4200,
+      "imgs_without_labels": 0,
+      "labels_without_imgs": 0,
+      "total_lines": 174416,
+      "empty_files": 0,
+      "field_errors": 0,
+      "class_id_errors": 0,
+      "coord_errors": 0
+    },
+    "test": {
+      "images": 4200,
+      "labels": 4200,
+      "matched": 4200,
+      "imgs_without_labels": 0,
+      "labels_without_imgs": 0,
+      "total_lines": 183340,
+      "empty_files": 0,
+      "field_errors": 0,
+      "class_id_errors": 0,
+      "coord_errors": 0
+    }
+  }
+}

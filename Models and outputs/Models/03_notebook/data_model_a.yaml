@@ -1,0 +1,16 @@
+path: C:\WebUIDetection\Models and outputs\Outputs\03_notebook\yolo_model_a
+train: images/train
+val: images/val
+test: images/test
+nc: 10
+names:
+- none
+- StaticText
+- link
+- generic
+- listitem
+- paragraph
+- heading
+- LineBreak
+- img
+- list

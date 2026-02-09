@@ -32,6 +32,7 @@ balanced_7k.zip-002.002
 webui-balanced-7k-20260208T053018Z-1-003
 balanced_7k
 
+
 # YOLO dataset (converted images and labels - too large for git)
 datasets/
 
@@ -45,6 +46,9 @@ runs/
 
 # Large manifest files (contain embedded bounding box data - regenerate from notebooks)
 Models and outputs/Outputs/*/manifests/*_manifest.json
+
+# YOLO model outputs
+Models and outputs/Outputs/03_notebook/yolo_model_a/
 
 # Editor and IDE
 .vscode/
