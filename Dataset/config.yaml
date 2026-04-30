@@ -1,0 +1,34 @@
+viewport:
+  width: 1920
+  height: 1080
+
+mobile_viewport:
+  width: 390
+  height: 844
+
+element_filters:
+  min_width: 8
+  min_height: 8
+  min_area: 64
+  max_area: 2000000
+
+classes:
+  - button
+  - input
+  - link
+  - nav
+  - form
+  - image
+  - dropdown
+  - modal
+  - header
+  - footer
+
+wait_strategy: networkidle
+color_schemes:
+  - light
+  - dark
+
+max_scroll_steps: 3
+navigation_timeout_ms: 30000
+post_load_delay_ms: 1000

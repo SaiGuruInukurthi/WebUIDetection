@@ -1,0 +1,36 @@
+{
+  "hackerNews": [
+    "https://news.ycombinator.com/",
+    "https://news.ycombinator.com/?p=2",
+    "https://news.ycombinator.com/?p=3",
+    "https://news.ycombinator.com/?p=4",
+    "https://news.ycombinator.com/?p=5"
+  ],
+  "productHunt": [
+    "https://www.producthunt.com/topics/developer-tools",
+    "https://www.producthunt.com/topics/artificial-intelligence",
+    "https://www.producthunt.com/topics/productivity",
+    "https://www.producthunt.com/topics/design-tools",
+    "https://www.producthunt.com/topics/remote-work"
+  ],
+  "awwwards": [
+    "https://www.awwwards.com/websites/",
+    "https://www.awwwards.com/websites/page/2/",
+    "https://www.awwwards.com/websites/page/3/"
+  ],
+  "siteInspire": [
+    "https://www.siteinspire.com/websites",
+    "https://www.siteinspire.com/websites?page=2",
+    "https://www.siteinspire.com/websites?page=3"
+  ],
+  "onePageLove": [
+    "https://onepagelove.com/inspiration",
+    "https://onepagelove.com/inspiration/page/2",
+    "https://onepagelove.com/inspiration/page/3"
+  ],
+  "cssDesignAwards": [
+    "https://cssdesignawards.com/websites/",
+    "https://cssdesignawards.com/websites/page/2/",
+    "https://cssdesignawards.com/websites/page/3/"
+  ]
+}

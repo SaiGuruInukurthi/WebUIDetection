@@ -1,6 +1,20 @@
 {
+  "name": "webui-dataset",
+  "private": true,
+  "type": "module",
   "dependencies": {
     "@playwright/test": "^1.59.1",
     "playwright": "^1.59.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.17",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "scripts": {
+    "scrape": "tsx src/url-scraper.ts",
+    "crawl": "tsx src/crawler.ts",
+    "phase2": "npm run scrape && npm run crawl",
+    "typecheck": "tsc --noEmit"
   }
 }

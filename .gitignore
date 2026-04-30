@@ -1,8 +1,11 @@
-Dataset/node_modules/
+**/node_modules/
 Dataset/raw/
 Dataset/output/
-Dataset/url-sources/*.txt
-Dataset/url-sources/*.json
+Dataset/url-sources/raw-urls.txt
+Dataset/url-sources/deduplicated-urls.txt
+Dataset/url-sources/url-scraper-log.json
+Dataset/url-sources/crawl-failures.json
+Dataset/raw/screenshots/manifest.jsonl
 Dataset/playwright-report/
 Dataset/test-results/
 Dataset/blob-report/
