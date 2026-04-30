@@ -1,1 +1,16 @@
-Dataset/node_modules
+Dataset/node_modules/
+Dataset/raw/
+Dataset/output/
+Dataset/url-sources/*.txt
+Dataset/url-sources/*.json
+Dataset/playwright-report/
+Dataset/test-results/
+Dataset/blob-report/
+**/.ipynb_checkpoints/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.log
+.env
+.venv/
+venv/

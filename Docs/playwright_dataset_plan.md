@@ -14,8 +14,11 @@ This plan outlines a structured pipeline to build a high-quality, annotated data
 npm install playwright
 npm install @playwright/test
 npx playwright install chromium
+# Run inside the WEBUI conda environment
 pip install pycocotools pyyaml pillow  # For annotation conversion
 ```
+
+All Python steps in this plan should run inside the `WEBUI` conda environment, and training/testing should use Jupyter notebooks rather than standalone `.py` scripts.
 
 ### 1.2 Project Structure
 
