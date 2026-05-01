@@ -122,11 +122,14 @@ async function fetchText(pageUrl: string): Promise<string | null> {
     });
 
     if (!response.ok) {
+      console.warn(`[WARN] fetchText: ${pageUrl} returned ${response.status}`);
       return null;
     }
 
-    return await response.text();
-  } catch {
+    const text = await response.text();
+    return text;
+  } catch (err) {
+    console.warn(`[WARN] fetchText: ${pageUrl} error: ${err instanceof Error ? err.message : String(err)}`);
     return null;
   }
 }
@@ -241,28 +244,91 @@ async function expandWithSitemaps(candidateUrls: string[]): Promise<string[]> {
 }
 
 async function main(): Promise<void> {
+  console.log('[LOG] Scraper starting...');
+  
+  // If called with --regenerate, use existing raw-urls.txt to build deduplicated list
+  if (process.argv.includes('--regenerate')) {
+    console.log('[LOG] --regenerate flag detected, using existing raw-urls.txt');
+    await ensureDir(rawUrlsPath);
+    await ensureDir(deduplicatedUrlsPath);
+
+    let rawText = '';
+    try {
+      rawText = await (await import('node:fs/promises')).readFile(rawUrlsPath, 'utf8');
+    } catch {
+      console.error(`[ERROR] Raw URLs file not found: ${rawUrlsPath}`);
+      process.exitCode = 1;
+      return;
+    }
+
+    const rawSet = new Set(splitLines(rawText));
+    const deduplicated = Array.from(rawSet).map(normalizeForDeduplication).filter(Boolean) as string[];
+
+    // Buckets by classification
+    const buckets: Record<string, string[]> = {};
+    for (const url of deduplicated) {
+      const category = classifyUrl(url);
+      if (!buckets[category]) buckets[category] = [];
+      buckets[category].push(url);
+    }
+
+    const categories = Object.keys(buckets);
+    const target = phase2Limits.targetUniqueUrls;
+    const selected: string[] = [];
+    let idx = 0;
+    while (selected.length < target) {
+      let progressed = false;
+      for (const cat of categories) {
+        const arr = buckets[cat];
+        if (arr && arr.length > 0 && selected.length < target) {
+          selected.push(arr.shift() as string);
+          progressed = true;
+        }
+      }
+      if (!progressed) break;
+      idx += 1;
+    }
+
+    await writeText(deduplicatedUrlsPath, `${selected.join('\n')}\n`);
+    await writeJson(deduplicatedUrlsWithCategoryPath, selected.map(u => ({ url: u, category: classifyUrl(u) })));
+
+    console.log(`[LOG] Regenerated ${selected.length} deduplicated URLs to ${deduplicatedUrlsPath}`);
+    return;
+  }
+
+  console.log('[LOG] Starting full scrape from source pages...');
   const sourcePages = await loadSourcePages();
+  console.log(`[LOG] Loaded source pages: ${Object.keys(sourcePages).length} sources`);
+  
   const rawUrls = new Set<string>();
   const sourceCounts: Record<string, number> = {};
   const failedPages: ScrapeLog['failedPages'] = [];
 
+  console.log('[LOG] Ensuring directories...');
   await ensureDir(rawUrlsPath);
   await ensureDir(deduplicatedUrlsPath);
   await ensureDir(scraperLogPath);
 
   const entries = Object.entries(sourcePages).slice(0, MAX_SOURCE_PAGES);
+  console.log(`[LOG] Processing ${entries.length} source entries...`);
 
   for (const [sourceName, pages] of entries) {
+    console.log(`[LOG] Scraping source: ${sourceName} with ${pages.length} pages`);
     let sourceCount = 0;
 
     for (const pageUrl of pages) {
+      console.log(`[LOG]   Fetching: ${pageUrl}`);
       const html = await fetchText(pageUrl);
       if (!html) {
+        console.warn(`[WARN] Failed to fetch: ${pageUrl}`);
         failedPages.push({ source: sourceName, page: pageUrl, error: 'fetch failed' });
         continue;
       }
 
+      console.log(`[LOG]   Fetched ${html.length} bytes, extracting URLs...`);
       const extracted = extractUrls(html, pageUrl);
+      console.log(`[LOG]   Found ${extracted.length} URLs on page`);
+      
       for (const candidate of extracted) {
         const normalized = normalizeForDeduplication(candidate);
         if (normalized) {
@@ -273,14 +339,20 @@ async function main(): Promise<void> {
     }
 
     sourceCounts[sourceName] = sourceCount;
+    console.log(`[LOG] Source ${sourceName} complete: ${sourceCount} normalized URLs`);
   }
 
   const originCandidates = Array.from(rawUrls);
+  console.log(`[LOG] Total raw URLs collected: ${originCandidates.length}`);
+  
+  console.log(`[LOG] Expanding with sitemaps from ${originCandidates.length} origins...`);
   const expanded = await expandWithSitemaps(originCandidates);
+  console.log(`[LOG] After sitemap expansion: ${expanded.length} URLs`);
 
   const deduplicated = Array.from(new Set(expanded))
     .filter(filterPageUrl)
     .sort((left, right) => left.localeCompare(right));
+  console.log(`[LOG] After deduplication and filtering: ${deduplicated.length} URLs`);
 
   // Balanced sampling across categories
   const buckets: Record<string, string[]> = {};
@@ -292,9 +364,11 @@ async function main(): Promise<void> {
     const category = classifyUrl(url);
     buckets[category].push(url);
   }
+  console.log(`[LOG] Categorized URLs: ${Object.entries(buckets).map(([cat, urls]) => `${cat}=${urls.length}`).join(', ')}`);
 
   // Round-robin sampling across categories
   const target = phase2Limits.targetUniqueUrls;
+  console.log(`[LOG] Starting round-robin selection targeting ${target} URLs...`);
   const selected: string[] = [];
   let more = true;
 
@@ -313,11 +387,14 @@ async function main(): Promise<void> {
   }
 
   const finalUrls = selected;
+  console.log(`[LOG] Selected ${finalUrls.length} URLs via round-robin`);
 
   // Write deduplicated URLs without category (for crawler)
+  console.log(`[LOG] Writing to ${deduplicatedUrlsPath}...`);
   await writeText(deduplicatedUrlsPath, `${finalUrls.join('\n')}\n`);
 
   // Write deduplicated URLs with category (for analysis)
+  console.log(`[LOG] Writing category mappings to ${deduplicatedUrlsWithCategoryPath}...`);
   await writeJson(deduplicatedUrlsWithCategoryPath, finalUrls.map(url => ({ url, category: classifyUrl(url) })));
 
   const log: ScrapeLog = {
@@ -330,17 +407,20 @@ async function main(): Promise<void> {
     failedPages
   };
 
+  console.log(`[LOG] Writing log to ${scraperLogPath}...`);
   await writeJson(scraperLogPath, log);
+  console.log(`[LOG] Scraper complete!`);
 
-  console.log(`Collected ${originCandidates.length} raw URLs`);
-  console.log(`Deduplicated to ${finalUrls.length} URLs`);
+  console.log(`\n✓ Collected ${originCandidates.length} raw URLs`);
+  console.log(`✓ Deduplicated to ${finalUrls.length} URLs`);
 
   if (finalUrls.length < phase2Limits.targetUniqueUrls) {
-    console.warn(`Target not yet met: ${finalUrls.length}/${phase2Limits.targetUniqueUrls}`);
+    console.warn(`⚠ Target not yet met: ${finalUrls.length}/${phase2Limits.targetUniqueUrls}`);
   }
 }
 
 main().catch(error => {
-  console.error('URL scraper failed:', error);
+  console.error('[ERROR] URL scraper failed:', error);
+  console.error(error instanceof Error ? error.stack : String(error));
   process.exitCode = 1;
 });

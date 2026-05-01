@@ -81,16 +81,15 @@ npm run typecheck
 
 ## Checkpoint & Resume behavior
 - On startup the crawler scans `Dataset/raw/screenshots` for existing artifacts.
-- For each URL index the crawler requires all 3 variants and their annotation `.json` files to consider that URL complete:
+ - For each URL index the crawler requires both desktop variants and their annotation `.json` files to consider that URL complete:
   - `XXXXX_light_... .webp` + `XXXXX_light_... .json`
   - `XXXXX_dark_... .webp` + `XXXXX_dark_... .json`
-  - `XXXXX_mobile_... .webp` + `XXXXX_mobile_... .json`
-- The crawler will resume from the first URL missing any of the above 6 files.
-- At startup the crawler logs a checkpoint summary similar to:
+ - The crawler will resume from the first URL missing either of the above files for that index.
+ - At startup the crawler logs a checkpoint summary similar to:
 
 ```
-Checkpoint: 2/3000 URLs already completed (6 screenshots).
-Resuming from URL 3/3000 (2998 URLs remaining).
+Checkpoint: 2/50000 URLs already completed (4 screenshots).
+Resuming from URL 3/50000 (49997 URLs remaining).
 ```
 
 - Partial URL artifacts are reprocessed from that URL to keep artifacts consistent (i.e., the URL with some missing variants will be re-captured for all variants).
@@ -132,7 +131,7 @@ Example:
 Each `.json` saved alongside a screenshot contains at least the following fields:
 
 - `url` (string) — source URL
-- `variant` ("light"|"dark"|"mobile")
+-- `variant` ("light"|"dark")
 - `viewport` (object) — `{ width, height }` used for capture
 - `annotationCount` (number) — number of bounding boxes
 - `timestamp` (ISO string)
@@ -161,10 +160,9 @@ Example snippet:
 ---
 
 ## Capture variants and thresholds
-- Variants captured per URL:
+ - Variants captured per URL:
   - `light`: desktop 1920×1080, light color scheme
   - `dark`: desktop 1920×1080, dark color scheme
-  - `mobile`: mobile 390×844, light color scheme
 
 - Element size thresholds (from `Dataset/src/paths.ts` / `phase2Limits`):
   - `minWidth`: 8 px

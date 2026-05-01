@@ -21,8 +21,8 @@ export const desktopViewport = { width: 1920, height: 1080 };
 export const mobileViewport = { width: 390, height: 844 };
 
 export const phase2Limits = {
-  targetUniqueUrls: 3000,
-  targetImages: 9000,
+  targetUniqueUrls: 50000,
+  targetImages: 100000,
   navigationTimeoutMs: 30000,
   postLoadDelayMs: 1000,
   maxScrollSteps: 3,

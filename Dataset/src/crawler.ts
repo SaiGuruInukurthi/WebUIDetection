@@ -1,10 +1,10 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { chromium, type Page } from 'playwright';
 import sharp from 'sharp';
-import { crawlFailuresPath, crawlManifestPath, deduplicatedUrlsPath, desktopViewport, mobileViewport, phase2Limits, screenshotRoot } from './paths.js';
+import { crawlFailuresPath, crawlManifestPath, deduplicatedUrlsPath, desktopViewport, phase2Limits, screenshotRoot } from './paths.js';
 import { canonicalizeUrl, ensureDir, safeFileSegment, shortHash, splitLines, writeJson, writeText } from './utils.js';
 
-type Variant = 'light' | 'dark' | 'mobile';
+type Variant = 'light' | 'dark';
 
 type BoundingBox = {
   class: string;
@@ -31,7 +31,7 @@ type CrawlManifestEntry = {
 
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 const RETRIES = 2;
-const VARIANTS: Variant[] = ['light', 'dark', 'mobile'];
+const VARIANTS: Variant[] = ['light', 'dark'];
 const IMAGE_FORMAT = 'webp';
 const IMAGE_QUALITY = 80;
 
@@ -250,7 +250,7 @@ async function main(): Promise<void> {
 
     try {
       for (const variant of VARIANTS) {
-        const viewport = variant === 'mobile' ? mobileViewport : desktopViewport;
+        const viewport = desktopViewport;
         const fileName = fileNameFor(url, index + 1, variant);
         const filePath = `${screenshotRoot}/${fileName}`;
 

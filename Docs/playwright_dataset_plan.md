@@ -32,10 +32,10 @@ Dataset/
 │   └── formatter.ts        # YOLO / COCO conversion
 ├── url-sources/
 │   ├── raw-urls.txt        # Scraped URLs (before deduplication)
-│   ├── deduplicated-urls.txt # Final cleaned URL list (3000 URLs)
+│   ├── deduplicated-urls.txt # Final cleaned URL list (50000 URLs)
 │   └── url-scraper-log.json # Logs from each scraping run
 ├── raw/
-│   ├── screenshots/        # PNG images (9000 total)
+│   ├── screenshots/        # images (100000 total)
 │   └── annotations/        # Raw JSON annotations
 ├── output/
 │   ├── images/             # Final cleaned images
@@ -106,20 +106,20 @@ Scrape diverse website directories and aggregate deduplicated URLs:
 | Hacker News posts | Tech, SaaS | 100–200 URLs |
 | Open directory/DMOZ snapshots | All categories | 500–1000 URLs |
 
-**Target distribution for 3,000 unique URLs:**
+**Target distribution for 50,000 unique URLs (balanced across categories):**
 
 | Category | Target Count |
 |---|---|
-| E-commerce | 600 URLs |
-| SaaS dashboards | 450 URLs |
-| Blogs / Content | 450 URLs |
-| Landing pages | 400 URLs |
-| Web apps / Tools | 400 URLs |
-| Portfolios / Projects | 350 URLs |
-| Social / Communities | 200 URLs |
-| Other | 150 URLs |
+| E-commerce | 6,250 URLs |
+| SaaS dashboards | 6,250 URLs |
+| Blogs / Content | 6,250 URLs |
+| Landing pages | 6,250 URLs |
+| Web apps / Tools | 6,250 URLs |
+| Portfolios / Projects | 6,250 URLs |
+| Social / Communities | 6,250 URLs |
+| Other | 6,250 URLs |
 
-**Final output: 3,000 unique URLs → 9,000 screenshots (3 variants each)**
+**Final output: 50,000 unique URLs → 100,000 screenshots (2 variants each)**
 
 ### 2.1a URL Scraper Implementation (`url-scraper.ts`)
 
@@ -250,8 +250,8 @@ async function main() {
   // Save raw URLs
   fs.writeFileSync('Dataset/url-sources/raw-urls.txt', urls.join('\n'));
   
-  // Save deduplicated (target: 3000)
-  const final = deduplicated.slice(0, 3000);
+  // Save deduplicated (target: 50000)
+  const final = deduplicated.slice(0, 50000);
   fs.writeFileSync('Dataset/url-sources/deduplicated-urls.txt', final.join('\n'));
 
   // Log sources
@@ -276,11 +276,10 @@ npx ts-node src/url-scraper.ts
 
 ### 2.2 Screenshot Variants per URL
 
-For each URL, capture three variants at zero extra scraping cost:
+For each URL, capture two desktop variants:
 
 1. **Desktop light mode** — base viewport (1920×1080)
 2. **Desktop dark mode** — `page.emulateMedia({ colorScheme: 'dark' })`
-3. **Mobile viewport** — 390×844 (iPhone 14 dimensions)
 
 ### 2.3 Crawler Script (`crawler.ts`)
 
@@ -294,7 +293,7 @@ const CONFIG_PATH = 'config.yaml'; // Loaded separately for selectors
 
 interface ScreenshotVariant {
   id: string;
-  variant: 'light' | 'dark' | 'mobile';
+  variant: 'light' | 'dark';
   path: string;
 }
 
@@ -311,13 +310,11 @@ async function capturePage(
     // Scroll to trigger lazy-loaded content
     await page.evaluate(() => window.scrollTo(0, 0));
 
-    const path = variant === 'mobile' 
-      ? `Dataset/raw/screenshots/${id}_mobile.png`
-      : `Dataset/raw/screenshots/${id}_${variant}.png`;
+    const path = `Dataset/raw/screenshots/${id}_${variant}.png`;
 
     await page.screenshot({
       path,
-      clip: { x: 0, y: 0, ...(variant === 'mobile' ? MOBILE_VIEWPORT : VIEWPORT) }
+      clip: { x: 0, y: 0, width: VIEWPORT.width, height: VIEWPORT.height }
     });
   } catch (err) {
     console.warn(`Failed to capture ${variant} for ${id}:`, err.message);
@@ -587,26 +584,25 @@ Before training, generate and log:
 - Images per site category
 - Annotation density histogram (annotations per image)
 
-### Target Dataset Scale (3,000 URLs × 3 variants)
+### Target Dataset Scale (50,000 URLs × 2 variants)
 
 | Metric | Target |
 |---|---|
-| Unique URLs | **3,000** |
-| Total images | **9,000** |
-| Desktop light mode | 3,000 (1920×1080) |
-| Desktop dark mode | 3,000 (1920×1080) |
-| Mobile variant | 3,000 (390×844) |
-| Expected total annotations | **600,000–800,000** |
+| Unique URLs | **50,000** |
+| Total images | **100,000** |
+| Desktop light mode | 50,000 (1920×1080) |
+| Desktop dark mode | 50,000 (1920×1080) |
+| Expected total annotations | **~6,000,000–8,000,000** |
 | Classes | 10 |
 | Formats | YOLO + COCO JSON |
-| Storage size | ~40–50 GB (raw + output) |
+| Storage size | ~600–800 GB (raw + output, estimated) |
 
 **Estimated runtime:**
-- URL scraping & deduplication: ~30–45 min
-- Screenshot crawling (3 variants × 3000 URLs): **80–120 hours** (parallelizable)
-- Annotation extraction: ~2–3 hours
-- Deduplication & QC: ~4–5 hours
-- Format conversion: ~1 hour
+- URL scraping & deduplication: ~1–2 hours
+- Screenshot crawling (2 variants × 50,000 URLs): **~800–1,200 hours** (single-process; highly parallelizable)
+- Annotation extraction: ~20–30 hours (parallelizable)
+- Deduplication & QC: ~12–24 hours
+- Format conversion: ~2–3 hours
 
 ---
 
