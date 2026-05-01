@@ -11,6 +11,7 @@ export const outputRoot = resolve(datasetRoot, 'output');
 
 export const rawUrlsPath = resolve(urlSourceRoot, 'raw-urls.txt');
 export const deduplicatedUrlsPath = resolve(urlSourceRoot, 'deduplicated-urls.txt');
+export const deduplicatedUrlsWithCategoryPath = resolve(urlSourceRoot, 'deduplicated-urls-with-category.json');
 export const scraperLogPath = resolve(urlSourceRoot, 'url-scraper-log.json');
 export const sourcePagesPath = resolve(urlSourceRoot, 'source-pages.json');
 export const crawlManifestPath = resolve(screenshotRoot, 'manifest.jsonl');

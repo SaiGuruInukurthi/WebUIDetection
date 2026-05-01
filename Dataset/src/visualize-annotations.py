@@ -83,8 +83,14 @@ def main():
     
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    # Find all screenshot files
-    jpg_files = sorted(screenshot_dir.glob('*.jpg'))
+    # Find all screenshot files (WebP, JPG, PNG, AVIF)
+    supported_patterns = ['*.webp', '*.jpg', '*.jpeg', '*.png', '*.avif']
+    all_files = []
+    for pattern in supported_patterns:
+        all_files.extend(screenshot_dir.glob(pattern))
+    
+    # Remove duplicates and sort
+    jpg_files = sorted(dict.fromkeys(all_files))
     
     if not jpg_files:
         print("❌ No screenshots found in raw/screenshots/")

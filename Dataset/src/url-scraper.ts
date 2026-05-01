@@ -1,6 +1,6 @@
 import { basename } from 'node:path';
 import { canonicalizeUrl, ensureDir, isLikelyAsset, readJson, splitLines, writeJson, writeText } from './utils.js';
-import { deduplicatedUrlsPath, phase2Limits, rawUrlsPath, scraperLogPath, sourcePagesPath } from './paths.js';
+import { deduplicatedUrlsPath, deduplicatedUrlsWithCategoryPath, phase2Limits, rawUrlsPath, scraperLogPath, sourcePagesPath } from './paths.js';
 
 type SourcePages = Record<string, string[]>;
 
@@ -20,6 +20,57 @@ const URL_PATTERN = /https?:\/\/[^\s"'<>]+/gi;
 const MAX_SOURCE_PAGES = 80;
 const MAX_SITEMAPS = 120;
 const MAX_URLS_PER_PAGE = 400;
+
+const CATEGORIES = ['ecommerce', 'news', 'blog', 'portfolio', 'corporate', 'forum', 'social', 'docs', 'education', 'other'];
+
+function classifyUrl(urlStr: string): string {
+  try {
+    const u = new URL(urlStr);
+    const host = u.hostname.toLowerCase();
+    const path = (u.pathname || '').toLowerCase();
+
+    // ecommerce
+    if (host.includes('shop') || host.includes('store') || path.includes('/product') || path.includes('/cart') || path.includes('/checkout')) {
+      return 'ecommerce';
+    }
+    // news
+    if (host.includes('news') || path.startsWith('/news') || host.includes('nyt') || host.includes('cnn')) {
+      return 'news';
+    }
+    // blog
+    if (host.includes('blog') || path.includes('/blog') || host.includes('medium')) {
+      return 'blog';
+    }
+    // portfolio
+    if (host.includes('behance') || host.includes('dribbble') || path.includes('/portfolio')) {
+      return 'portfolio';
+    }
+    // forum
+    if (path.includes('/forum') || host.includes('reddit') || host.includes('discourse') || path.includes('/thread')) {
+      return 'forum';
+    }
+    // social
+    if (host.includes('facebook') || host.includes('twitter') || host.includes('instagram') || host.includes('linkedin')) {
+      return 'social';
+    }
+    // docs
+    if (path.startsWith('/docs') || host.includes('readthedocs') || host.includes('doc')) {
+      return 'docs';
+    }
+    // education
+    if (host.endsWith('.edu') || path.includes('/course') || path.includes('/university')) {
+      return 'education';
+    }
+    // corporate fallback
+    if (path === '/' && host.split('.').length >= 2) {
+      return 'corporate';
+    }
+
+    return 'other';
+  } catch {
+    return 'other';
+  }
+}
 
 function loadDefaultSourcePages(): SourcePages {
   return {
@@ -231,10 +282,43 @@ async function main(): Promise<void> {
     .filter(filterPageUrl)
     .sort((left, right) => left.localeCompare(right));
 
-  const finalUrls = deduplicated.slice(0, phase2Limits.targetUniqueUrls);
+  // Balanced sampling across categories
+  const buckets: Record<string, string[]> = {};
+  for (const category of CATEGORIES) {
+    buckets[category] = [];
+  }
 
-  await writeText(rawUrlsPath, `${originCandidates.join('\n')}\n`);
+  for (const url of deduplicated) {
+    const category = classifyUrl(url);
+    buckets[category].push(url);
+  }
+
+  // Round-robin sampling across categories
+  const target = phase2Limits.targetUniqueUrls;
+  const selected: string[] = [];
+  let more = true;
+
+  while (selected.length < target && more) {
+    more = false;
+    for (const category of CATEGORIES) {
+      const arr = buckets[category];
+      if (arr.length > 0 && selected.length < target) {
+        const url = arr.shift();
+        if (url) {
+          selected.push(url);
+          more = true;
+        }
+      }
+    }
+  }
+
+  const finalUrls = selected;
+
+  // Write deduplicated URLs without category (for crawler)
   await writeText(deduplicatedUrlsPath, `${finalUrls.join('\n')}\n`);
+
+  // Write deduplicated URLs with category (for analysis)
+  await writeJson(deduplicatedUrlsWithCategoryPath, finalUrls.map(url => ({ url, category: classifyUrl(url) })));
 
   const log: ScrapeLog = {
     generatedAt: new Date().toISOString(),

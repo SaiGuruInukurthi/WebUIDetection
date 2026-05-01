@@ -17,7 +17,9 @@ This document describes the Phase 2 workflow used to collect screenshots and ele
 ## Requirements / Setup
 - Node.js + npm (Project configured in `Dataset/package.json`)
 - Playwright installed (`playwright` package is a dependency)
+- Sharp library for WebP conversion (`sharp` package)
 - TypeScript dev tooling (for `npm run typecheck`): `typescript`, `tsx`, `@types/node`
+- Vitest for unit testing: `vitest`, `@vitest/ui`
 - Conda `WEBUI` environment for Python visualization (Pillow)
 
 Install (if not already):
@@ -25,8 +27,8 @@ Install (if not already):
 ```bash
 cd Dataset
 npm install
-# If you need the TypeScript dev deps:
-npm install -D typescript tsx @types/node
+# If you need the TypeScript dev deps and testing:
+npm install -D typescript tsx @types/node vitest @vitest/ui
 # To use visualization (optional):
 conda activate WEBUI
 pip install pillow
@@ -55,6 +57,18 @@ npm run crawl
 npm run scrape
 ```
 
+- Run unit tests (classification, balanced sampling, image format):
+
+```bash
+npm run test
+```
+
+- Run tests with interactive UI:
+
+```bash
+npm run test:ui
+```
+
 - Type-check the TypeScript code:
 
 ```bash
@@ -68,9 +82,9 @@ npm run typecheck
 ## Checkpoint & Resume behavior
 - On startup the crawler scans `Dataset/raw/screenshots` for existing artifacts.
 - For each URL index the crawler requires all 3 variants and their annotation `.json` files to consider that URL complete:
-  - `XXXXX_light_... .jpg` + `XXXXX_light_... .json`
-  - `XXXXX_dark_... .jpg` + `XXXXX_dark_... .json`
-  - `XXXXX_mobile_... .jpg` + `XXXXX_mobile_... .json`
+  - `XXXXX_light_... .webp` + `XXXXX_light_... .json`
+  - `XXXXX_dark_... .webp` + `XXXXX_dark_... .json`
+  - `XXXXX_mobile_... .webp` + `XXXXX_mobile_... .json`
 - The crawler will resume from the first URL missing any of the above 6 files.
 - At startup the crawler logs a checkpoint summary similar to:
 
@@ -88,13 +102,13 @@ Resuming from URL 3/3000 (2998 URLs remaining).
 - Each screenshot file name format:
 
 ```
-{index_padded}_{variant}_{host}_{path_segment}_{hash}.jpg
+{index_padded}_{variant}_{host}_{path_segment}_{hash}.webp
 ```
 
 Example:
 
 ```
-00027_light_conference.awwwards.com_root_1cd27974f2.jpg
+00027_light_conference.awwwards.com_root_1cd27974f2.webp
 ```
 
 - The corresponding annotation file is the same name with `.json` extension:
@@ -102,6 +116,11 @@ Example:
 ```
 00027_light_conference.awwwards.com_root_1cd27974f2.json
 ```
+
+**Image Format Details**:
+- Format: WebP (via Sharp library, quality=80)
+- Benefits: 30-40% smaller file size than JPEG at equivalent quality
+- All images saved as WebP during crawl; PNG intermediate files are not retained
 
 - Manifest and failures files (summary):
   - `Dataset/raw/screenshots/manifest.jsonl` — newline-delimited JSON entries (crawler writes per-run manifest entries)
@@ -177,9 +196,27 @@ Processed 50/3000 URLs (150 screenshots, 480 annotations)
 - To check counts from the host without stopping crawler (PowerShell examples):
 
 ```powershell
-# number of jpgs and jsons
-Start-Sleep -Seconds 10; @{screenshots=(Get-ChildItem 'c:\WebUIDetection\Dataset\raw\screenshots\*.jpg' -ErrorAction SilentlyContinue | Measure-Object | Select-Object -ExpandProperty Count); annotations=(Get-ChildItem 'c:\WebUIDetection\Dataset\raw\screenshots\*.json' -ErrorAction SilentlyContinue | Measure-Object | Select-Object -ExpandProperty Count)} | ConvertTo-Json
+# number of webps and jsons
+Start-Sleep -Seconds 10; @{screenshots=(Get-ChildItem 'c:\WebUIDetection\Dataset\raw\screenshots\*.webp' -ErrorAction SilentlyContinue | Measure-Object | Select-Object -ExpandProperty Count); annotations=(Get-ChildItem 'c:\WebUIDetection\Dataset\raw\screenshots\*.json' -ErrorAction SilentlyContinue | Measure-Object | Select-Object -ExpandProperty Count)} | ConvertTo-Json
 ```
+
+---
+
+## Testing
+- Unit tests validate classification logic, balanced sampling, and image format specifications:
+
+```bash
+npm run test
+```
+
+- Test coverage includes:
+  - URL classification into 10 site categories (ecommerce, news, blog, portfolio, corporate, forum, social, docs, education, other)
+  - Round-robin balanced sampling ensuring even category distribution
+  - WebP format configuration (quality=80), conversion from PNG, RIFF header validation
+  - Filename patterns and annotation path derivation
+  - File size efficiency gains over JPEG
+
+- All tests must pass before running the full crawl (`npm run phase2`).
 
 ---
 
@@ -189,6 +226,7 @@ Start-Sleep -Seconds 10; @{screenshots=(Get-ChildItem 'c:\WebUIDetection\Dataset
   - Confirm network conditions; the crawler uses `waitUntil: 'networkidle'` and a post-load delay. Consider increasing `phase2Limits.postLoadDelayMs` in `Dataset/src/paths.ts` for slow pages.
 - If the crawler repeatedly fails for a URL, check `Dataset/url-sources/crawl-failures.json` for error messages and consider excluding problematic domains.
 - If a run was interrupted, re-run `npm run crawl`; the crawler will resume from the first incomplete URL.
+- If unit tests fail, check test output with `npm run test:ui` for interactive debugging.
 
 ---
 

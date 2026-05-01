@@ -1,5 +1,6 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { chromium, type Page } from 'playwright';
+import sharp from 'sharp';
 import { crawlFailuresPath, crawlManifestPath, deduplicatedUrlsPath, desktopViewport, mobileViewport, phase2Limits, screenshotRoot } from './paths.js';
 import { canonicalizeUrl, ensureDir, safeFileSegment, shortHash, splitLines, writeJson, writeText } from './utils.js';
 
@@ -31,6 +32,8 @@ type CrawlManifestEntry = {
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 const RETRIES = 2;
 const VARIANTS: Variant[] = ['light', 'dark', 'mobile'];
+const IMAGE_FORMAT = 'webp';
+const IMAGE_QUALITY = 80;
 
 // Element class selectors for annotation extraction
 const CLASS_SELECTORS: Record<string, string> = {
@@ -99,11 +102,11 @@ function fileNameFor(url: string, index: number, variant: Variant): string {
   const host = safeFileSegment(parsed.hostname);
   const pathSegment = safeFileSegment(parsed.pathname.replace(/\//g, '-').replace(/^-+|-+$/g, '')) || 'root';
   const hash = shortHash(normalized);
-  return `${String(index).padStart(5, '0')}_${variant}_${host}_${pathSegment}_${hash}.jpg`;
+  return `${String(index).padStart(5, '0')}_${variant}_${host}_${pathSegment}_${hash}.${IMAGE_FORMAT}`;
 }
 
 function annotationFileNameFor(url: string, index: number, variant: Variant): string {
-  return fileNameFor(url, index, variant).replace(/\.jpg$/, '.json');
+  return fileNameFor(url, index, variant).replace(/\.\w+$/, '.json');
 }
 
 async function detectCheckpoint(urls: string[]): Promise<{ resumeIndex: number; completedUrls: number; completedScreenshots: number }> {
@@ -158,7 +161,7 @@ async function captureVariant(page: Page, url: string, filePath: string, variant
   const annotationCount = annotations.length;
 
   // Save annotation metadata alongside screenshot
-  const annotationPath = filePath.replace(/\.jpg$/, '.json');
+  const annotationPath = filePath.replace(/\.\w+$/, '.json');
   await writeJson(annotationPath, {
     url,
     variant,
@@ -168,14 +171,16 @@ async function captureVariant(page: Page, url: string, filePath: string, variant
     annotations
   });
 
-  // Capture as JPEG with quality settings for better performance
-  await page.screenshot({
-    path: filePath,
+  // Capture as PNG then convert to WebP via sharp
+  const buffer = await page.screenshot({
     fullPage: false,
-    type: 'jpeg',
-    quality: 85,
+    type: 'png',
     timeout: 10000
   });
+
+  await sharp(buffer)
+    .toFormat(IMAGE_FORMAT, { quality: IMAGE_QUALITY })
+    .toFile(filePath);
 
   return { annotationCount };
 }

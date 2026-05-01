@@ -4,17 +4,22 @@
   "type": "module",
   "dependencies": {
     "@playwright/test": "^1.59.1",
-    "playwright": "^1.59.1"
+    "playwright": "^1.59.1",
+    "sharp": "^0.33.5"
   },
   "devDependencies": {
     "@types/node": "^22.19.17",
+    "@vitest/ui": "^1.6.1",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^1.6.1"
   },
   "scripts": {
     "scrape": "tsx src/url-scraper.ts",
     "crawl": "tsx src/crawler.ts",
     "phase2": "npm run scrape && npm run crawl",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "test:ui": "vitest --ui"
   }
 }
