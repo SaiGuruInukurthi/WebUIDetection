@@ -110,31 +110,103 @@ function annotationFileNameFor(url: string, index: number, variant: Variant): st
 }
 
 async function detectCheckpoint(urls: string[]): Promise<{ resumeIndex: number; completedUrls: number; completedScreenshots: number }> {
-  const files = await readdir(screenshotRoot, { withFileTypes: true });
-  const existingFiles = new Set(files.filter(file => file.isFile()).map(file => file.name));
+  // Robust resume using filename indices as the source of truth.
+  // For each index, check if both light and dark variants exist.
+  // Handles gaps in indices (e.g., 00001, 00003, 00004) when URLs fail.
+  
+  try {
+    const dirents = await readdir(screenshotRoot, { withFileTypes: true });
+    const jsonFiles = dirents
+      .filter(d => d.isFile() && d.name.endsWith('.json'))
+      .map(d => d.name);
 
-  for (let index = 0; index < urls.length; index += 1) {
-    const url = urls[index];
-    const allArtifactsPresent = VARIANTS.every(variant => {
-      const jpgName = fileNameFor(url, index + 1, variant);
-      const jsonName = annotationFileNameFor(url, index + 1, variant);
-      return existingFiles.has(jpgName) && existingFiles.has(jsonName);
-    });
+    // Build index -> variants map from filenames: XXXXX_variant_...json
+    const variantsByIndex = new Map<number, Set<string>>();
+    for (const jf of jsonFiles) {
+      try {
+        // Parse filename format: {5-digit-index}_{variant}_...
+        const match = jf.match(/^(\d{5})_(\w+)_/);
+        if (!match) continue;
 
-    if (!allArtifactsPresent) {
-      return {
-        resumeIndex: index,
-        completedUrls: index,
-        completedScreenshots: index * VARIANTS.length
-      };
+        const index = parseInt(match[1], 10);
+        const variant = match[2];
+
+        const set = variantsByIndex.get(index) ?? new Set<string>();
+        set.add(variant);
+        variantsByIndex.set(index, set);
+      } catch {
+        continue;
+      }
     }
-  }
 
-  return {
-    resumeIndex: urls.length,
-    completedUrls: urls.length,
-    completedScreenshots: urls.length * VARIANTS.length
-  };
+    // Also read URLs from JSON for verification
+    const urlsByIndex = new Map<number, string>();
+    for (const jf of jsonFiles) {
+      try {
+        const match = jf.match(/^(\d{5})_/);
+        if (!match) continue;
+        const index = parseInt(match[1], 10);
+
+        if (urlsByIndex.has(index)) continue; // already have URL for this index
+
+        const content = await readFile(`${screenshotRoot}/${jf}`, 'utf8');
+        const parsed = JSON.parse(content);
+        if (parsed && typeof parsed.url === 'string') {
+          urlsByIndex.set(index, parsed.url);
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    // Find the first URL index that doesn't have both required variants.
+    // Return resume index as 0-based array index (not 1-based file index).
+    let completed = 0;
+    let screenshotCount = 0;
+    let resumeIndex = urls.length; // Default: all done
+    let firstIncompleteIndex = -1;
+
+    for (let fileIndex = 1; fileIndex <= urls.length; fileIndex += 1) {
+      const variants = variantsByIndex.get(fileIndex);
+      const savedUrl = urlsByIndex.get(fileIndex);
+      const arrayIndex = fileIndex - 1; // convert to 0-based array index
+      const expectedUrl = urls[arrayIndex];
+
+      // Check if this index is complete (has both variants)
+      if (variants && VARIANTS.every(v => variants.has(v))) {
+        // Verify URL matches (optional, for debugging URL mismatches)
+        if (savedUrl && savedUrl !== expectedUrl) {
+          console.warn(`⚠ URL mismatch at file index ${fileIndex}:`);
+          console.warn(`  Saved: ${savedUrl}`);
+          console.warn(`  Expected: ${expectedUrl}`);
+        }
+        completed += 1;
+        screenshotCount += VARIANTS.length;
+      } else if (firstIncompleteIndex === -1) {
+        // Record the FIRST incomplete index we encounter
+        firstIncompleteIndex = arrayIndex;
+      }
+    }
+
+    // Resume from the first incomplete index (or end of list if all complete)
+    if (firstIncompleteIndex !== -1) {
+      resumeIndex = firstIncompleteIndex;
+    }
+
+    return {
+      resumeIndex,
+      completedUrls: completed,
+      completedScreenshots: screenshotCount
+    };
+  } catch (error) {
+    // If checkpoint detection fails, start from beginning
+    console.warn('Failed to detect checkpoint:', error instanceof Error ? error.message : error);
+    return {
+      resumeIndex: 0,
+      completedUrls: 0,
+      completedScreenshots: 0
+    };
+  }
 }
 
 async function captureVariant(page: Page, url: string, filePath: string, variant: Variant, viewport: typeof desktopViewport): Promise<{ annotationCount: number }> {
@@ -286,7 +358,19 @@ async function main(): Promise<void> {
 
   await browser.close();
 
-  await writeText(crawlManifestPath, `${manifestEntries.map(entry => JSON.stringify(entry)).join('\n')}\n`);
+  // Append to manifest (preserve previous entries from resumed runs)
+  const existingManifest = (() => {
+    try {
+      return readFile(crawlManifestPath, 'utf8').then(content => content);
+    } catch {
+      return Promise.resolve('');
+    }
+  })();
+
+  const newManifestEntries = manifestEntries.map(entry => JSON.stringify(entry)).join('\n');
+  const existingContent = await existingManifest;
+  const finalManifest = existingContent ? `${existingContent}${newManifestEntries}\n` : `${newManifestEntries}\n`;
+  await writeText(crawlManifestPath, finalManifest);
   await writeJson(crawlFailuresPath, {
     generatedAt: new Date().toISOString(),
     totalUrls: urls.length,
