@@ -1,6 +1,9 @@
 import { readFile, readdir } from 'node:fs/promises';
+import path from 'node:path';
+import fs from 'node:fs';
 import { chromium, type Page } from 'playwright';
 import sharp from 'sharp';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { crawlFailuresPath, crawlManifestPath, datasetMetricsPath, deduplicatedUrlsPath, desktopViewport, phase2Limits, qualityThresholds, screenshotRoot } from './paths.js';
 import { canonicalizeUrl, ensureDir, safeFileSegment, shortHash, splitLines, writeJson, writeText } from './utils.js';
 
@@ -36,6 +39,21 @@ const RETRIES = 2;
 const VARIANTS: Variant[] = ['light', 'dark'];
 const IMAGE_FORMAT = 'webp';
 const IMAGE_QUALITY = 80;
+
+// AWS S3 Configuration
+const S3_ENABLED = process.env.S3_ENABLED === 'true';
+const S3_BUCKET = process.env.S3_BUCKET || 'webui-dataset';
+const S3_REGION = process.env.AWS_REGION || 'us-east-1';
+const S3_BATCH_SIZE = 50; // Upload to S3 every 50 images
+
+// Parallel crawler configuration
+const CONCURRENCY = parseInt(process.env.CRAWLER_CONCURRENCY || '5', 10);
+
+// S3 Client (only initialized if enabled)
+let s3Client: S3Client | null = null;
+if (S3_ENABLED) {
+  s3Client = new S3Client({ region: S3_REGION });
+}
 
 // Class population caps to prevent imbalance (e.g., links dominating dataset)
 const CLASS_LIMITS: Record<string, number> = {
@@ -408,6 +426,55 @@ async function captureWithRetries(page: Page, url: string, filePath: string, var
   return { status: 'failed', error: 'unknown capture failure' };
 }
 
+/**
+ * Upload a file to S3. Returns true on success, logs and returns false on failure.
+ */
+async function uploadToS3(localPath: string, s3Key: string): Promise<boolean> {
+  if (!s3Client) return true; // S3 disabled, no-op success
+
+  try {
+    const fileBuffer = fs.readFileSync(localPath);
+    await s3Client.send(new PutObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: s3Key,
+      Body: fileBuffer,
+    }));
+    return true;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.warn(`⚠️ S3 upload failed for ${s3Key}: ${errorMsg}`);
+    return false;
+  }
+}
+
+/**
+ * Batch upload queued images to S3.
+ * Each item is { localPath, s3Key }.
+ */
+async function uploadBatchToS3(
+  queue: Array<{ localPath: string; s3Key: string }>
+): Promise<{ succeeded: number; failed: number }> {
+  if (queue.length === 0) return { succeeded: 0, failed: 0 };
+  if (!s3Client) return { succeeded: queue.length, failed: 0 }; // S3 disabled
+
+  console.log(`\n📤 Uploading batch of ${queue.length} files to S3...`);
+
+  let succeeded = 0;
+  let failed = 0;
+
+  for (const { localPath, s3Key } of queue) {
+    const ok = await uploadToS3(localPath, s3Key);
+    if (ok) {
+      succeeded += 1;
+    } else {
+      failed += 1;
+    }
+  }
+
+  console.log(`✓ S3 batch upload: ${succeeded} succeeded, ${failed} failed`);
+  return { succeeded, failed };
+}
+
 async function main(): Promise<void> {
   await ensureDir(crawlManifestPath);
   await ensureDir(crawlFailuresPath);
@@ -430,76 +497,104 @@ async function main(): Promise<void> {
   }
 
   console.log(`Resuming from URL ${checkpoint.resumeIndex + 1}/${urls.length} (${pendingUrls} URLs remaining).`);
+  console.log(`Starting ${CONCURRENCY} parallel workers...`);
+  if (S3_ENABLED) {
+    console.log(`📤 S3 upload enabled: bucket="${S3_BUCKET}", region="${S3_REGION}"`);
+  }
 
   const browser = await chromium.launch({ headless: true });
   const manifestEntries: CrawlManifestEntry[] = [];
   const failures: CrawlFailure[] = [];
   const globalClassCounts: Record<string, number> = {};
+  const s3UploadQueue: Array<{ localPath: string; s3Key: string }> = [];
   let lowQualityCount = 0;
-
   let completed = checkpoint.completedUrls;
   let screenshotCount = checkpoint.completedScreenshots;
   let totalAnnotations = 0;
+  let s3UploadedCount = 0;
+  let s3UploadFailedCount = 0;
 
-  for (const [index, url] of urls.entries()) {
-    if (index < checkpoint.resumeIndex) {
-      continue;
-    }
-
-    console.log(`Crawling ${index + 1}/${urls.length}: ${url}`);
-
+  // Process URLs in parallel using workers
+  const workers = Array(CONCURRENCY).fill(null).map(async (_, workerId) => {
     const page = await browser.newPage({ userAgent: USER_AGENT });
 
     try {
-      for (const variant of VARIANTS) {
-        const viewport = desktopViewport;
-        const fileName = fileNameFor(url, index + 1, variant);
-        const filePath = `${screenshotRoot}/${fileName}`;
+      for (let urlIndex = checkpoint.resumeIndex + workerId; urlIndex < urls.length; urlIndex += CONCURRENCY) {
+        const url = urls[urlIndex];
 
-        const result = await captureWithRetries(page, url, filePath, variant, viewport);
-        
-        const entry: CrawlManifestEntry = {
-          url,
-          variant,
-          fileName,
-          status: result.status,
-          attempt: result.status === 'saved' ? 1 : RETRIES + 1,
-          timestamp: new Date().toISOString(),
-          annotationCount: result.annotationCount
-        };
+        console.log(`[Worker ${workerId}] Crawling ${urlIndex + 1}/${urls.length}: ${url}`);
 
-        if (result.qualityFlags && result.qualityFlags.length > 0) {
-          entry.qualityFlags = result.qualityFlags;
-          lowQualityCount += 1;
-        }
+        for (const variant of VARIANTS) {
+          const viewport = desktopViewport;
+          const fileName = fileNameFor(url, urlIndex + 1, variant);
+          const filePath = `${screenshotRoot}/${fileName}`;
+          const s3Key = `screenshots/${fileName}`;
 
-        if (result.classDistribution) {
-          entry.classDistribution = result.classDistribution;
-          // Aggregate global class counts
-          for (const [className, count] of Object.entries(result.classDistribution)) {
-            globalClassCounts[className] = (globalClassCounts[className] ?? 0) + count;
+          const result = await captureWithRetries(page, url, filePath, variant, viewport);
+
+          const entry: CrawlManifestEntry = {
+            url,
+            variant,
+            fileName,
+            status: result.status,
+            attempt: result.status === 'saved' ? 1 : RETRIES + 1,
+            timestamp: new Date().toISOString(),
+            annotationCount: result.annotationCount
+          };
+
+          if (result.qualityFlags && result.qualityFlags.length > 0) {
+            entry.qualityFlags = result.qualityFlags;
+            lowQualityCount += 1;
+          }
+
+          if (result.classDistribution) {
+            entry.classDistribution = result.classDistribution;
+            // Aggregate global class counts
+            for (const [className, count] of Object.entries(result.classDistribution)) {
+              globalClassCounts[className] = (globalClassCounts[className] ?? 0) + count;
+            }
+          }
+
+          manifestEntries.push(entry);
+
+          if (result.status === 'saved') {
+            screenshotCount += 1;
+            if (result.annotationCount) {
+              totalAnnotations += result.annotationCount;
+            }
+            // Queue for S3 upload
+            s3UploadQueue.push({ localPath: filePath, s3Key });
+          } else if (result.error) {
+            failures.push({ url, error: result.error });
+          }
+
+          // Batch upload to S3 if queue is full
+          if (s3UploadQueue.length >= S3_BATCH_SIZE) {
+            const { succeeded, failed } = await uploadBatchToS3(s3UploadQueue);
+            s3UploadedCount += succeeded;
+            s3UploadFailedCount += failed;
+            s3UploadQueue.length = 0;
           }
         }
 
-        manifestEntries.push(entry);
-
-        if (result.status === 'saved') {
-          screenshotCount += 1;
-          if (result.annotationCount) {
-            totalAnnotations += result.annotationCount;
-          }
-        } else if (result.error) {
-          failures.push({ url, error: result.error });
+        completed += 1;
+        if (completed % 50 === 0 || completed === urls.length) {
+          console.log(`✓ Processed ${completed}/${urls.length} URLs (${screenshotCount} screenshots, ${totalAnnotations} annotations, ${lowQualityCount} low-quality)${S3_ENABLED ? ` | S3: ${s3UploadedCount} uploaded` : ''}`);
         }
-      }
-
-      completed += 1;
-      if (completed % 50 === 0 || completed === urls.length) {
-        console.log(`Processed ${completed}/${urls.length} URLs (${screenshotCount} screenshots, ${totalAnnotations} annotations, ${lowQualityCount} low-quality)`);
       }
     } finally {
       await page.close();
     }
+  });
+
+  // Wait for all workers to finish
+  await Promise.all(workers);
+
+  // Final S3 batch upload (remaining items)
+  if (s3UploadQueue.length > 0) {
+    const { succeeded, failed } = await uploadBatchToS3(s3UploadQueue);
+    s3UploadedCount += succeeded;
+    s3UploadFailedCount += failed;
   }
 
   await browser.close();
@@ -560,6 +655,13 @@ async function main(): Promise<void> {
   console.log(`Extracted ${totalAnnotations} annotations`);
   console.log(`Low-quality images: ${lowQualityCount} (${((lowQualityCount / Math.max(1, screenshotCount)) * 100).toFixed(1)}%)`);
   console.log(`Failures: ${failures.length}`);
+  if (S3_ENABLED) {
+    console.log(`\nS3 Upload Summary:`);
+    console.log(`✓ Uploaded: ${s3UploadedCount} files`);
+    if (s3UploadFailedCount > 0) {
+      console.log(`✗ Failed: ${s3UploadFailedCount} files (check logs)`);
+    }
+  }
   console.log(`\nClass Distribution (Global):`);
   for (const [cls, count] of sortedClasses) {
     const pct = classPercentages[cls];
