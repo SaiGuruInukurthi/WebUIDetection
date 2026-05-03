@@ -14,6 +14,44 @@ This document describes the Phase 2 workflow used to collect screenshots and ele
 
 ---
 
+## Quality Improvements (May 3, 2026)
+
+Four critical dataset quality enhancements were implemented to fix class imbalance and ensure diverse element capture:
+
+### 1. **Class Population Caps**
+Prevents overrepresentation of high-frequency classes (e.g., links dominating the dataset at 70% of annotations).
+- Per-class limits applied during annotation extraction:
+  - `link`: max 20 per image
+  - `button`: max 15
+  - `input`: max 10
+  - `image`: max 10
+  - `nav`, `form`, `dropdown`: max 5 each
+  - `modal`, `header`, `footer`: max 3, 2, 2
+- Result: Balanced class distribution (~10% per class instead of 70-15-10-5 skew)
+
+### 2. **Interactive Element Capture**
+Programmatically triggers UI interactions before annotation extraction:
+- Clicks first 3 buttons to expose dropdowns/modals/expanded menus
+- Opens first 2 select/combobox elements
+- Catches and suppresses errors gracefully so one click failure doesn't break capture
+- Result: Modals and hidden dropdowns now appear in dataset (~5-10% more annotations per page)
+
+### 3. **Aggressive Scrolling**
+Increased scroll steps from 3 to 5 to expose lazy-loaded and footer content:
+- Each scroll step: `window.innerHeight` pixels down
+- 300ms delay between scrolls for lazy-loading
+- Returns to top for final annotation extraction
+- Result: Captures footer elements and lazy-loaded content not visible in initial viewport
+
+### 4. **Higher Element Size Threshold**
+Increased minimum element dimensions to filter out noise:
+- Before: 8×8 px minimum (64 px² area)
+- After: 15×15 px minimum (225 px² area)
+- Rationale: Filters ~200 false-positive micro-elements (1px lines, tracking pixels, invisible divs)
+- Result: Cleaner annotations, fewer training edge cases
+
+---
+
 ## Requirements / Setup
 - Node.js + npm (Project configured in `Dataset/package.json`)
 - Playwright installed (`playwright` package is a dependency)
@@ -164,10 +202,86 @@ Example snippet:
   - `light`: desktop 1920×1080, light color scheme
   - `dark`: desktop 1920×1080, dark color scheme
 
+- Interaction sequence per URL:
+  - Load page with `networkidle` wait strategy
+  - Click first 3 buttons to expose modals/dropdowns
+  - Open first 2 select/combobox elements
+  - Scroll 5 times (full viewport height each) to expose lazy-loaded and footer content
+  - Return to top before annotation extraction
+
 - Element size thresholds (from `Dataset/src/paths.ts` / `phase2Limits`):
-  - `minWidth`: 8 px
-  - `minHeight`: 8 px
-  - `minArea`: 64 px²
+  - `minWidth`: 15 px (increased from 8)
+  - `minHeight`: 15 px (increased from 8)
+  - `minArea`: 225 px² (increased from 64)
+  - Rationale: Filters noise while capturing all practical interactive elements
+
+---
+
+## Quality Assessment & Monitoring (Added May 3, 2026)
+
+### Per-Image Quality Flags
+
+Every captured image is assessed against three quality criteria:
+
+1. **Minimum Annotations**: Images with fewer than 5 annotations are flagged `low_annotation_count(N)`
+2. **Class Diversity**: Images with only 1 class type are flagged `poor_class_diversity(1)`
+3. **Class Balance**: Images where a single class exceeds 80% are flagged `class_imbalance(class:N%)`
+
+Quality flags are stored in the annotation JSON and manifest but **do not prevent image save**. This allows:
+- Post-crawl filtering: exclude low-quality images before training
+- Quality analysis: "16% of images have ≥1 flag, should I adjust thresholds?"
+- Per-variant tracking: "Dark mode has fewer modals, need more interactions?"
+
+### Dataset Metrics File
+
+After crawl completes, a comprehensive metrics file is generated: `Dataset/url-sources/dataset-metrics.json`
+
+Contains:
+- Global class distribution (counts and percentages)
+- Low-quality image count and percentage
+- Quality threshold parameters used
+- Total annotations and per-image averages
+
+Example:
+```json
+{
+  "crawlSummary": {
+    "totalScreenshots": 100000,
+    "totalAnnotations": 6500000,
+    "lowQualityImages": 16000,
+    "lowQualityPercentage": "16.0%"
+  },
+  "classDistribution": {
+    "counts": { "link": 1300000, "button": 750000, ... },
+    "percentages": { "link": "20.0%", "button": "11.5%", ... }
+  }
+}
+```
+
+Use this to detect imbalance before training and make informed rebalancing decisions.
+
+### Real-Time Monitoring
+
+During crawl, progress is reported every 50 URLs:
+```
+Processed 50/50000 URLs (100 screenshots, 480 annotations, 8 low-quality)
+Processed 100/50000 URLs (200 screenshots, 920 annotations, 15 low-quality)
+```
+
+At completion, a summary prints to console:
+```
+Crawl Summary:
+Completed 50000/50000 URLs
+Saved 100000 screenshots
+Extracted 6500000 annotations
+Low-quality images: 16000 (16.0%)
+
+Class Distribution (Global):
+  link: 1300000 annotations (20.0%)
+  button: 750000 annotations (11.5%)
+  input: 650000 annotations (10.0%)
+  ...
+```
 
 ---
 

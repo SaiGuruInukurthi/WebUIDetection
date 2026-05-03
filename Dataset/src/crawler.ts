@@ -1,7 +1,7 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { chromium, type Page } from 'playwright';
 import sharp from 'sharp';
-import { crawlFailuresPath, crawlManifestPath, deduplicatedUrlsPath, desktopViewport, phase2Limits, screenshotRoot } from './paths.js';
+import { crawlFailuresPath, crawlManifestPath, datasetMetricsPath, deduplicatedUrlsPath, desktopViewport, phase2Limits, qualityThresholds, screenshotRoot } from './paths.js';
 import { canonicalizeUrl, ensureDir, safeFileSegment, shortHash, splitLines, writeJson, writeText } from './utils.js';
 
 type Variant = 'light' | 'dark';
@@ -27,6 +27,8 @@ type CrawlManifestEntry = {
   attempt: number;
   timestamp: string;
   annotationCount?: number;
+  qualityFlags?: string[];  // e.g., ["low_annotation_count", "poor_class_diversity", "class_imbalance"]
+  classDistribution?: Record<string, number>;  // per-image class counts
 };
 
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
@@ -34,6 +36,20 @@ const RETRIES = 2;
 const VARIANTS: Variant[] = ['light', 'dark'];
 const IMAGE_FORMAT = 'webp';
 const IMAGE_QUALITY = 80;
+
+// Class population caps to prevent imbalance (e.g., links dominating dataset)
+const CLASS_LIMITS: Record<string, number> = {
+  button: 15,
+  input: 10,
+  link: 20,
+  nav: 5,
+  form: 5,
+  image: 10,
+  dropdown: 5,
+  modal: 3,
+  header: 2,
+  footer: 2
+};
 
 // Element class selectors for annotation extraction
 const CLASS_SELECTORS: Record<string, string> = {
@@ -48,6 +64,71 @@ const CLASS_SELECTORS: Record<string, string> = {
   header: 'header, [role="banner"]',
   footer: 'footer, [role="contentinfo"]'
 };
+
+/**
+ * Balance annotations by applying per-class population caps.
+ * Prevents class imbalance (e.g., links >> modals).
+ */
+function balanceClasses(annotations: BoundingBox[]): BoundingBox[] {
+  const grouped: Record<string, BoundingBox[]> = {};
+  
+  for (const ann of annotations) {
+    if (!grouped[ann.class]) grouped[ann.class] = [];
+    grouped[ann.class].push(ann);
+  }
+
+  const result: BoundingBox[] = [];
+  for (const className in grouped) {
+    const limit = CLASS_LIMITS[className] ?? 10;
+    result.push(...grouped[className].slice(0, limit));
+  }
+
+  return result;
+}
+
+/**
+ * Check image quality and return any quality flags.
+ * Images can still be saved but flagged for optional filtering.
+ * Returns:
+ *   - Empty array if image passes all checks
+ *   - Array of failure reasons (e.g., ["low_annotation_count", "class_imbalance"])
+ */
+function assessImageQuality(
+  annotations: BoundingBox[]
+): { flags: string[]; classDistribution: Record<string, number> } {
+  const flags: string[] = [];
+
+  // Count annotations per class
+  const classCounts: Record<string, number> = {};
+  for (const ann of annotations) {
+    classCounts[ann.class] = (classCounts[ann.class] ?? 0) + 1;
+  }
+
+  const totalAnnotations = annotations.length;
+  const uniqueClasses = Object.keys(classCounts).length;
+
+  // Check 1: Minimum annotation count
+  if (totalAnnotations < qualityThresholds.minAnnotationsPerImage) {
+    flags.push(`low_annotation_count(${totalAnnotations})`);
+  }
+
+  // Check 2: Minimum class diversity
+  if (uniqueClasses < qualityThresholds.minClassDiversity) {
+    flags.push(`poor_class_diversity(${uniqueClasses})`);
+  }
+
+  // Check 3: Single class dominance
+  const maxClassCount = Math.max(...Object.values(classCounts));
+  const maxRatio = maxClassCount / totalAnnotations;
+  if (maxRatio > qualityThresholds.maxSingleClassRatio) {
+    const dominantClass = Object.entries(classCounts).find(
+      ([, count]) => count === maxClassCount
+    )?.[0];
+    flags.push(`class_imbalance(${dominantClass}:${(maxRatio * 100).toFixed(0)}%)`);
+  }
+
+  return { flags, classDistribution: classCounts };
+}
 
 async function extractAnnotations(page: Page, viewport: typeof desktopViewport): Promise<BoundingBox[]> {
   const annotations: BoundingBox[] = [];
@@ -93,7 +174,8 @@ async function extractAnnotations(page: Page, viewport: typeof desktopViewport):
     }
   }
 
-  return annotations;
+  // Apply class-level population caps to prevent imbalance
+  return balanceClasses(annotations);
 }
 
 function fileNameFor(url: string, index: number, variant: Variant): string {
@@ -209,7 +291,7 @@ async function detectCheckpoint(urls: string[]): Promise<{ resumeIndex: number; 
   }
 }
 
-async function captureVariant(page: Page, url: string, filePath: string, variant: Variant, viewport: typeof desktopViewport): Promise<{ annotationCount: number }> {
+async function captureVariant(page: Page, url: string, filePath: string, variant: Variant, viewport: typeof desktopViewport): Promise<{ annotationCount: number; qualityFlags: string[]; classDistribution: Record<string, number> }> {
   await page.setViewportSize(viewport);
   await page.emulateMedia({ colorScheme: variant === 'dark' ? 'dark' : 'light' });
 
@@ -228,9 +310,48 @@ async function captureVariant(page: Page, url: string, filePath: string, variant
   });
   await page.waitForTimeout(500);
 
+  // Trigger interactions to reveal hidden UI elements (modals, dropdowns, menus)
+  // These won't break the page but will expose more interactive elements
+  try {
+    // Try clicking the first few buttons to trigger dropdowns/modals
+    const buttons = page.locator('button');
+    const buttonCount = Math.min(3, await buttons.count().catch(() => 0));
+    for (let i = 0; i < buttonCount; i += 1) {
+      await buttons.nth(i).click({ timeout: 500 }).catch(() => {});
+      await page.waitForTimeout(100);
+    }
+  } catch {}
+
+  try {
+    // Try opening any dropdowns or select elements
+    const selects = page.locator('select, [role="listbox"], [role="combobox"]');
+    const selectCount = Math.min(2, await selects.count().catch(() => 0));
+    for (let i = 0; i < selectCount; i += 1) {
+      await selects.nth(i).click({ timeout: 500 }).catch(() => {});
+      await page.waitForTimeout(100);
+    }
+  } catch {}
+
+  // Aggressive scrolling to expose lazy-loaded and footer content
+  for (let i = 0; i < phase2Limits.maxScrollSteps; i += 1) {
+    await page.evaluate(() => {
+      window.scrollBy(0, window.innerHeight);
+    });
+    await page.waitForTimeout(300);
+  }
+
+  // Return to top after scrolling
+  await page.evaluate(() => {
+    window.scrollTo(0, 0);
+  });
+  await page.waitForTimeout(500);
+
   // Extract annotations in parallel while page is loaded
   const annotations = await extractAnnotations(page, viewport);
   const annotationCount = annotations.length;
+
+  // Assess image quality
+  const { flags: qualityFlags, classDistribution } = assessImageQuality(annotations);
 
   // Save annotation metadata alongside screenshot
   const annotationPath = filePath.replace(/\.\w+$/, '.json');
@@ -239,6 +360,8 @@ async function captureVariant(page: Page, url: string, filePath: string, variant
     variant,
     viewport,
     annotationCount,
+    qualityFlags: qualityFlags.length > 0 ? qualityFlags : undefined,
+    classDistribution,
     timestamp: new Date().toISOString(),
     annotations
   });
@@ -254,10 +377,10 @@ async function captureVariant(page: Page, url: string, filePath: string, variant
     .toFormat(IMAGE_FORMAT, { quality: IMAGE_QUALITY })
     .toFile(filePath);
 
-  return { annotationCount };
+  return { annotationCount, qualityFlags, classDistribution };
 }
 
-async function captureWithRetries(page: Page, url: string, filePath: string, variant: Variant, viewport: typeof desktopViewport): Promise<{ status: CrawlManifestEntry['status']; error?: string; annotationCount?: number }> {
+async function captureWithRetries(page: Page, url: string, filePath: string, variant: Variant, viewport: typeof desktopViewport): Promise<{ status: CrawlManifestEntry['status']; error?: string; annotationCount?: number; qualityFlags?: string[]; classDistribution?: Record<string, number> }> {
   for (let attempt = 1; attempt <= RETRIES + 1; attempt += 1) {
     try {
       // Close and recreate page on retry to clear corrupted state
@@ -266,7 +389,12 @@ async function captureWithRetries(page: Page, url: string, filePath: string, var
         page = await (page.context() as any).newPage({ userAgent: USER_AGENT });
       }
       const result = await captureVariant(page, url, filePath, variant, viewport);
-      return { status: 'saved', annotationCount: result.annotationCount };
+      return { 
+        status: 'saved', 
+        annotationCount: result.annotationCount,
+        qualityFlags: result.qualityFlags,
+        classDistribution: result.classDistribution
+      };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       if (attempt > RETRIES) {
@@ -306,6 +434,8 @@ async function main(): Promise<void> {
   const browser = await chromium.launch({ headless: true });
   const manifestEntries: CrawlManifestEntry[] = [];
   const failures: CrawlFailure[] = [];
+  const globalClassCounts: Record<string, number> = {};
+  let lowQualityCount = 0;
 
   let completed = checkpoint.completedUrls;
   let screenshotCount = checkpoint.completedScreenshots;
@@ -327,7 +457,8 @@ async function main(): Promise<void> {
         const filePath = `${screenshotRoot}/${fileName}`;
 
         const result = await captureWithRetries(page, url, filePath, variant, viewport);
-        manifestEntries.push({
+        
+        const entry: CrawlManifestEntry = {
           url,
           variant,
           fileName,
@@ -335,7 +466,22 @@ async function main(): Promise<void> {
           attempt: result.status === 'saved' ? 1 : RETRIES + 1,
           timestamp: new Date().toISOString(),
           annotationCount: result.annotationCount
-        });
+        };
+
+        if (result.qualityFlags && result.qualityFlags.length > 0) {
+          entry.qualityFlags = result.qualityFlags;
+          lowQualityCount += 1;
+        }
+
+        if (result.classDistribution) {
+          entry.classDistribution = result.classDistribution;
+          // Aggregate global class counts
+          for (const [className, count] of Object.entries(result.classDistribution)) {
+            globalClassCounts[className] = (globalClassCounts[className] ?? 0) + count;
+          }
+        }
+
+        manifestEntries.push(entry);
 
         if (result.status === 'saved') {
           screenshotCount += 1;
@@ -349,7 +495,7 @@ async function main(): Promise<void> {
 
       completed += 1;
       if (completed % 50 === 0 || completed === urls.length) {
-        console.log(`Processed ${completed}/${urls.length} URLs (${screenshotCount} screenshots, ${totalAnnotations} annotations)`);
+        console.log(`Processed ${completed}/${urls.length} URLs (${screenshotCount} screenshots, ${totalAnnotations} annotations, ${lowQualityCount} low-quality)`);
       }
     } finally {
       await page.close();
@@ -380,10 +526,46 @@ async function main(): Promise<void> {
     failures
   });
 
+  // Generate dataset metrics for class distribution monitoring
+  const sortedClasses = Object.entries(globalClassCounts).sort(([, a], [, b]) => b - a);
+  const classPercentages = Object.fromEntries(
+    sortedClasses.map(([cls, count]) => [
+      cls,
+      totalAnnotations > 0 ? ((count / totalAnnotations) * 100).toFixed(1) : '0'
+    ])
+  );
+
+  await writeJson(datasetMetricsPath, {
+    generatedAt: new Date().toISOString(),
+    crawlSummary: {
+      totalUrls: urls.length,
+      completedUrls: completed,
+      successfulUrls: completed - (failures.length / 2), // rough estimate (2 variants per URL)
+      totalScreenshots: screenshotCount,
+      totalAnnotations,
+      lowQualityImages: lowQualityCount,
+      lowQualityPercentage: ((lowQualityCount / Math.max(1, screenshotCount)) * 100).toFixed(1)
+    },
+    classDistribution: {
+      counts: globalClassCounts,
+      percentages: classPercentages,
+      uniqueClasses: Object.keys(globalClassCounts).length
+    },
+    qualityThresholds
+  });
+
+  console.log(`\nCrawl Summary:`);
   console.log(`Completed ${completed}/${urls.length} URLs`);
   console.log(`Saved ${screenshotCount} screenshots`);
   console.log(`Extracted ${totalAnnotations} annotations`);
+  console.log(`Low-quality images: ${lowQualityCount} (${((lowQualityCount / Math.max(1, screenshotCount)) * 100).toFixed(1)}%)`);
   console.log(`Failures: ${failures.length}`);
+  console.log(`\nClass Distribution (Global):`);
+  for (const [cls, count] of sortedClasses) {
+    const pct = classPercentages[cls];
+    console.log(`  ${cls}: ${count} annotations (${pct}%)`);
+  }
+  console.log(`\nDataset metrics saved to: ${datasetMetricsPath}`);
 }
 
 main().catch(error => {
