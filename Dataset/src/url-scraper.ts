@@ -113,25 +113,55 @@ async function loadSourcePages(): Promise<SourcePages> {
 }
 
 async function fetchText(pageUrl: string): Promise<string | null> {
-  try {
-    const response = await fetch(pageUrl, {
-      headers: {
-        'user-agent': USER_AGENT,
-        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-      }
-    });
+  const maxRetries = 2;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(pageUrl, {
+        headers: {
+          'user-agent': USER_AGENT,
+          'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+        }
+      });
 
-    if (!response.ok) {
-      console.warn(`[WARN] fetchText: ${pageUrl} returned ${response.status}`);
+      if (!response.ok) {
+        // Common and expected cases: suppress noisy warnings
+        if (response.status === 404) {
+          console.info(`[INFO] fetchText: ${pageUrl} returned 404`);
+          return null;
+        }
+        if (response.status === 401 || response.status === 403) {
+          console.info(`[INFO] fetchText: ${pageUrl} returned ${response.status} (auth/blocked)`);
+          return null;
+        }
+
+        // Retry on rate limiting or server errors
+        if ((response.status >= 500 && response.status < 600) || response.status === 429) {
+          if (attempt < maxRetries) {
+            const wait = 500 * (attempt + 1);
+            await new Promise(r => setTimeout(r, wait));
+            continue;
+          }
+          console.warn(`[WARN] fetchText: ${pageUrl} returned ${response.status}`);
+          return null;
+        }
+
+        console.warn(`[WARN] fetchText: ${pageUrl} returned ${response.status}`);
+        return null;
+      }
+
+      const text = await response.text();
+      return text;
+    } catch (err) {
+      if (attempt < maxRetries) {
+        await new Promise(r => setTimeout(r, 300 * (attempt + 1)));
+        continue;
+      }
+      console.warn(`[WARN] fetchText: ${pageUrl} error: ${err instanceof Error ? err.message : String(err)}`);
       return null;
     }
-
-    const text = await response.text();
-    return text;
-  } catch (err) {
-    console.warn(`[WARN] fetchText: ${pageUrl} error: ${err instanceof Error ? err.message : String(err)}`);
-    return null;
   }
+
+  return null;
 }
 
 function extractUrls(html: string, baseUrl: string): string[] {

@@ -60,10 +60,10 @@ This guide covers deploying the WebUI dataset crawler to AWS using:
 
 ```bash
 # Set bucket name (must be globally unique)
-BUCKET_NAME="webui-dataset-2026"
+BUCKET_NAME="webui-dataset-2026-ap"
 
-# Create bucket in your preferred region
-aws s3 mb s3://${BUCKET_NAME} --region us-east-1
+# Create bucket in ap-south-2 region
+aws s3 mb s3://${BUCKET_NAME} --region ap-south-2
 ```
 
 **Verify**:
@@ -86,8 +86,8 @@ aws s3 ls s3://${BUCKET_NAME}
         "s3:ListBucket"
       ],
       "Resource": [
-        "arn:aws:s3:::webui-dataset-2026",
-        "arn:aws:s3:::webui-dataset-2026/*"
+        "arn:aws:s3:::webui-dataset-2026-ap",
+        "arn:aws:s3:::webui-dataset-2026-ap/*"
       ]
     }
   ]
@@ -129,7 +129,7 @@ aws iam add-role-to-instance-profile \
 ```
 Instance Type: t3.xlarge (4 vCPU, 16 GB RAM)
 Cost: ~$0.1664/hour on-demand, ~$0.05/hour spot
-AMI: Ubuntu 22.04 LTS (ami-0c55b159cbfafe1f0 for us-east-1)
+AMI: Ubuntu 22.04 LTS (ami-0c55b159cbfafe1f0 for ap-south-2)
 Storage: 100 GB gp3 (root volume)
 Spot: YES (70% discount)
 ```
@@ -214,13 +214,14 @@ ssh -i your-key.pem ubuntu@<instance-public-ip>
 
 # Set environment variables
 export S3_ENABLED=true
-export S3_BUCKET=webui-dataset-2026
-export AWS_REGION=us-east-1
+export S3_BUCKET=webui-dataset-2026-ap
+export AWS_REGION=ap-south-2
 export CRAWLER_CONCURRENCY=5
 
 # Verify
 echo "S3_ENABLED=$S3_ENABLED"
 echo "S3_BUCKET=$S3_BUCKET"
+echo "AWS_REGION=$AWS_REGION"
 echo "CRAWLER_CONCURRENCY=$CRAWLER_CONCURRENCY"
 ```
 
@@ -230,8 +231,8 @@ Create `/opt/WebUIDetection/Dataset/.env`:
 
 ```bash
 S3_ENABLED=true
-S3_BUCKET=webui-dataset-2026
-AWS_REGION=us-east-1
+S3_BUCKET=webui-dataset-2026-ap
+AWS_REGION=ap-south-2
 CRAWLER_CONCURRENCY=5
 ```
 
@@ -315,13 +316,13 @@ ls Dataset/raw/screenshots/*.webp | wc -l
 **Download from S3**:
 ```bash
 # Option 1: Download all (slow for 100k files)
-aws s3 sync s3://webui-dataset-2026/screenshots/ ./Dataset/raw/screenshots/
+aws s3 sync s3://webui-dataset-2026-ap/screenshots/ ./Dataset/raw/screenshots/
 
 # Option 2: Download only metrics (fast)
-aws s3 cp s3://webui-dataset-2026/screenshots/manifest.jsonl \
+aws s3 cp s3://webui-dataset-2026-ap/screenshots/manifest.jsonl \
   ./Dataset/raw/screenshots/manifest.jsonl
 
-aws s3 cp s3://webui-dataset-2026/screenshots/dataset-metrics.json \
+aws s3 cp s3://webui-dataset-2026-ap/screenshots/dataset-metrics.json \
   ./Dataset/url-sources/dataset-metrics.json
 ```
 
@@ -483,5 +484,5 @@ iftop -i eth0
 
 ---
 
-**Reference**: See [S3_CONFIGURATION.md](S3_CONFIGURATION.md) for detailed S3 setup.  
+**Reference**: See [S3_CONFIGURATION.md](S3_CONFIGURATION.md) for detailed S3 setup.
 **Questions?** Check crawler logs: `tail -f crawl.log`

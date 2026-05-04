@@ -17,3 +17,7 @@ Dataset/blob-report/
 .env
 .venv/
 venv/
+webui-key.pem
+aws.txt
+webui-cli-user_accessKeys.csv
+webui-key-1.pem

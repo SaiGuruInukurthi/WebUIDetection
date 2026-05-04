@@ -191,8 +191,8 @@ Set before running `npm run crawl`:
 ```bash
 # Required
 S3_ENABLED=true               # Enable S3 uploads
-S3_BUCKET=webui-dataset-2026  # Your S3 bucket
-AWS_REGION=us-east-1         # AWS region
+S3_BUCKET=webui-dataset-2026-ap  # Your S3 bucket
+AWS_REGION=ap-south-2         # AWS region
 
 # Recommended
 CRAWLER_CONCURRENCY=5         # Parallel workers (1-10)

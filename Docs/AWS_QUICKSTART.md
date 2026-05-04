@@ -12,8 +12,8 @@
 
 ```bash
 # Create S3 bucket
-BUCKET=webui-dataset-2026
-aws s3api create-bucket --bucket $BUCKET --region us-east-1
+BUCKET=webui-dataset-2026-ap
+aws s3api create-bucket --bucket $BUCKET --region ap-south-2 --create-bucket-configuration LocationConstraint=ap-south-2
 
 # Enable versioning
 aws s3api put-bucket-versioning --bucket $BUCKET \
@@ -114,8 +114,8 @@ cd /opt/WebUIDetection/Dataset
 # Create .env
 cat > .env << EOF
 S3_ENABLED=true
-S3_BUCKET=webui-dataset-2026
-AWS_REGION=us-east-1
+S3_BUCKET=webui-dataset-2026-ap
+AWS_REGION=ap-south-2
 CRAWLER_CONCURRENCY=5
 EOF
 
@@ -148,8 +148,8 @@ Set in `.env` or shell:
 ```bash
 # Required
 S3_ENABLED=true
-S3_BUCKET=webui-dataset-2026
-AWS_REGION=us-east-1
+S3_BUCKET=webui-dataset-2026-ap
+AWS_REGION=ap-south-2
 
 # Optional (defaults shown)
 CRAWLER_CONCURRENCY=5           # parallelism (1-10)
@@ -196,7 +196,7 @@ tail -f crawl.log
 # Expected output:
 # [18:20:30] Starting WebUI crawler...
 # [18:20:31] Starting 5 parallel workers...
-# [18:20:32] 📤 S3 upload enabled: bucket="webui-dataset-2026"
+# [18:20:32] 📤 S3 upload enabled: bucket="webui-dataset-2026-ap"
 # [18:20:35] [Worker 0] Crawling 1/50000: https://example.com
 # [18:20:40] ✓ Processed 5/50000 URLs | S3: 10 uploaded
 ```
@@ -233,7 +233,7 @@ screen -S crawl -X quit
 
 ```bash
 # On your laptop
-watch -n 10 'aws s3 ls s3://webui-dataset-2026/screenshots/ --recursive --summarize'
+watch -n 10 'aws s3 ls s3://webui-dataset-2026-ap/screenshots/ --recursive --summarize'
 
 # Or one-time:
 aws s3 ls s3://webui-dataset-2026/screenshots/ --recursive --summarize
@@ -264,18 +264,18 @@ df -h
 
 ```bash
 # Option 1: Just metrics (fast, ~1 MB)
-aws s3 cp s3://webui-dataset-2026/screenshots/manifest.jsonl ./
-aws s3 cp s3://webui-dataset-2026/screenshots/dataset-metrics.json ./
+aws s3 cp s3://webui-dataset-2026-ap/screenshots/manifest.jsonl ./
+aws s3 cp s3://webui-dataset-2026-ap/screenshots/dataset-metrics.json ./
 
 # Option 2: All JSON annotations (large, ~5 GB)
-aws s3 sync s3://webui-dataset-2026/screenshots/ ./screenshots/ \
+aws s3 sync s3://webui-dataset-2026-ap/screenshots/ ./screenshots/ \
   --exclude "*.webp" --include "*.json"
 
 # Option 3: All data (very large, ~100 GB)
-aws s3 sync s3://webui-dataset-2026/screenshots/ ./screenshots/
+aws s3 sync s3://webui-dataset-2026-ap/screenshots/ ./screenshots/
 
 # Option 4: Specific files
-aws s3 cp s3://webui-dataset-2026/screenshots/00001_light_apnews.com_article-*.webp ./
+aws s3 cp s3://webui-dataset-2026-ap/screenshots/00001_light_apnews.com_article-*.webp ./
 ```
 
 ---

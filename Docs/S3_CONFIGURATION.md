@@ -11,8 +11,8 @@
 
 ```bash
 # Set variables
-BUCKET_NAME="webui-dataset-2026"
-AWS_REGION="us-east-1"
+BUCKET_NAME="webui-dataset-2026-ap"
+AWS_REGION="ap-south-2"
 
 # Create bucket
 aws s3api create-bucket \
@@ -68,7 +68,7 @@ aws s3api put-bucket-policy \
 The crawler creates this structure in S3:
 
 ```
-s3://webui-dataset-2026/
+s3://webui-dataset-2026-ap/
 ├── screenshots/
 │   ├── 00001_light_apnews.com_article-*.webp
 │   ├── 00001_light_apnews.com_article-*.json
@@ -203,10 +203,10 @@ Set on EC2 before running crawler:
 S3_ENABLED=true
 
 # Required: S3 bucket name
-S3_BUCKET=webui-dataset-2026
+S3_BUCKET=webui-dataset-2026-ap
 
-# Optional: AWS region (default: us-east-1)
-AWS_REGION=us-east-1
+# Optional: AWS region (default: ap-south-2)
+AWS_REGION=ap-south-2
 
 # Optional: Parallel concurrency (default: 5)
 CRAWLER_CONCURRENCY=5
@@ -216,8 +216,8 @@ CRAWLER_CONCURRENCY=5
 
 ```bash
 export S3_ENABLED=true
-export S3_BUCKET=webui-dataset-2026
-export AWS_REGION=us-east-1
+export S3_BUCKET=webui-dataset-2026-ap
+export AWS_REGION=ap-south-2
 export CRAWLER_CONCURRENCY=5
 
 # Verify
@@ -228,8 +228,8 @@ echo "S3_ENABLED=$S3_ENABLED"
 
 ```dockerfile
 ENV S3_ENABLED=true
-ENV S3_BUCKET=webui-dataset-2026
-ENV AWS_REGION=us-east-1
+ENV S3_BUCKET=webui-dataset-2026-ap
+ENV AWS_REGION=ap-south-2
 ```
 
 ---
@@ -292,7 +292,7 @@ tail -f crawl.log | grep "S3 upload\|uploaded"
 
 ```bash
 # From CLI
-aws s3 ls s3://webui-dataset-2026/screenshots/ --recursive --human-readable --summarize
+aws s3 ls s3://webui-dataset-2026-ap/screenshots/ --recursive --human-readable --summarize
 
 # Output:
 # Total Objects: 100000
@@ -401,12 +401,12 @@ aws s3api create-bucket --bucket webui-dataset-2026
 aws s3 ls s3://webui-dataset-2026 --recursive --summarize
 
 # Check for unintended uploads (multiple batches?)
-aws s3api list-object-versions --bucket webui-dataset-2026 --query 'Versions[*].[Key,LastModified,VersionId]' --output table
+aws s3api list-object-versions --bucket webui-dataset-2026-ap --query 'Versions[*].[Key,LastModified,VersionId]' --output table
 ```
 
 **Fix**:
-- Delete old batches: `aws s3 rm s3://webui-dataset-2026/screenshots/ --recursive`
-- Disable versioning if not needed: `aws s3api put-bucket-versioning --bucket webui-dataset-2026 --versioning-configuration Status=Suspended`
+- Delete old batches: `aws s3 rm s3://webui-dataset-2026-ap/screenshots/ --recursive`
+- Disable versioning if not needed: `aws s3api put-bucket-versioning --bucket webui-dataset-2026-ap --versioning-configuration Status=Suspended`
 
 ---
 
@@ -416,52 +416,52 @@ aws s3api list-object-versions --bucket webui-dataset-2026 --query 'Versions[*].
 
 ```bash
 # All objects
-aws s3 ls s3://webui-dataset-2026/screenshots/
+aws s3 ls s3://webui-dataset-2026-ap/screenshots/
 
 # Recursive with human-readable sizes
-aws s3 ls s3://webui-dataset-2026/screenshots/ --recursive --human-readable
+aws s3 ls s3://webui-dataset-2026-ap/screenshots/ --recursive --human-readable
 
 # Summary
-aws s3 ls s3://webui-dataset-2026/screenshots/ --recursive --summarize
+aws s3 ls s3://webui-dataset-2026-ap/screenshots/ --recursive --summarize
 ```
 
 ### Download Objects
 
 ```bash
 # Single file
-aws s3 cp s3://webui-dataset-2026/screenshots/manifest.jsonl ./
+aws s3 cp s3://webui-dataset-2026-ap/screenshots/manifest.jsonl ./
 
 # Entire directory
-aws s3 sync s3://webui-dataset-2026/screenshots/ ./screenshots/
+aws s3 sync s3://webui-dataset-2026-ap/screenshots/ ./screenshots/
 
 # Exclude certain files
-aws s3 sync s3://webui-dataset-2026/screenshots/ ./screenshots/ --exclude "*.webp" --include "*.json"
+aws s3 sync s3://webui-dataset-2026-ap/screenshots/ ./screenshots/ --exclude "*.webp" --include "*.json"
 ```
 
 ### Delete Objects
 
 ```bash
 # Single file
-aws s3 rm s3://webui-dataset-2026/screenshots/00001_light_apnews.com_article-*.webp
+aws s3 rm s3://webui-dataset-2026-ap/screenshots/00001_light_apnews.com_article-*.webp
 
 # All objects in bucket
-aws s3 rm s3://webui-dataset-2026/screenshots/ --recursive
+aws s3 rm s3://webui-dataset-2026-ap/screenshots/ --recursive
 
 # Keep versioning enabled (keeps history)
-aws s3api delete-object-version --bucket webui-dataset-2026 --key screenshots/00001_light_apnews.com_article-*.webp --version-id XXXX
+aws s3api delete-object-version --bucket webui-dataset-2026-ap --key screenshots/00001_light_apnews.com_article-*.webp --version-id XXXX
 ```
 
 ### Upload Objects
 
 ```bash
 # Single file
-aws s3 cp ./local-file.webp s3://webui-dataset-2026/screenshots/
+aws s3 cp ./local-file.webp s3://webui-dataset-2026-ap/screenshots/
 
 # Entire directory
-aws s3 sync ./screenshots/ s3://webui-dataset-2026/screenshots/
+aws s3 sync ./screenshots/ s3://webui-dataset-2026-ap/screenshots/
 
 # With metadata
-aws s3 cp ./file.webp s3://webui-dataset-2026/screenshots/ --metadata quality=high,source=crawler
+aws s3 cp ./file.webp s3://webui-dataset-2026-ap/screenshots/ --metadata quality=high,source=crawler
 ```
 
 ---
@@ -489,7 +489,7 @@ Cache screenshots for web access:
 
 ```bash
 aws cloudfront create-distribution \
-  --origin-domain-name webui-dataset-2026.s3.amazonaws.com \
+  --origin-domain-name webui-dataset-2026-ap.s3.amazonaws.com \
   --default-root-object manifest.jsonl \
   # ... more config
 ```
@@ -504,7 +504,7 @@ Auto-delete old versions after 30 days:
 
 ```bash
 aws s3api put-bucket-lifecycle-configuration \
-  --bucket webui-dataset-2026 \
+  --bucket webui-dataset-2026-ap \
   --lifecycle-configuration '{
     "Rules": [{
       "Id": "DeleteOldVersions",

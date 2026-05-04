@@ -29,8 +29,8 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 #### S3 Configuration (Lines 40–49)
 ```typescript
 const S3_ENABLED = process.env.S3_ENABLED === 'true';
-const S3_BUCKET = process.env.S3_BUCKET || 'webui-dataset';
-const S3_REGION = process.env.AWS_REGION || 'us-east-1';
+const S3_BUCKET = process.env.S3_BUCKET || 'webui-dataset-2026-ap';
+const S3_REGION = process.env.AWS_REGION || 'ap-south-2';
 const S3_BATCH_SIZE = 50; // Upload every 50 images
 
 let s3Client: S3Client | null = null;
@@ -147,8 +147,8 @@ if (s3UploadQueue.length > 0) {
 ### Required
 ```bash
 S3_ENABLED=true               # Enable S3 uploads
-S3_BUCKET=webui-dataset-2026  # S3 bucket name
-AWS_REGION=us-east-1         # AWS region
+S3_BUCKET=webui-dataset-2026-ap  # S3 bucket name
+AWS_REGION=ap-south-2         # AWS region
 CRAWLER_CONCURRENCY=5         # Parallel worker count (1-10)
 ```
 
